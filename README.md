@@ -7,7 +7,7 @@ Android-App mit Homescreen-Widget für [Backrest](https://github.com/garethgeorg
 - **Benachrichtigung**, wenn ein Backup fehlschlägt (abschaltbar).
 - Aktualisierung im Hintergrund per WorkManager (Standard 30 min, minimal 15 min).
 
-Benötigt Android 8.0+ und Backrest ≥ 1.6 (getestet mit 1.14.1).
+Lizenz: MIT. Benötigt Android 8.0+ und Backrest ≥ 1.6 (getestet mit 1.14.1).
 
 ## Einrichtung
 
