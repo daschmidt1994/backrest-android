@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="status_ok">#2E7D32</color>
+    <color name="status_running">#1565C0</color>
+    <color name="status_warning">#EF8F00</color>
+    <color name="status_error">#C62828</color>
+    <color name="status_none">#9E9E9E</color>
+    <color name="accent">#1E6B8F</color>
+    <color name="window_bg">#F4F6F8</color>
+    <color name="card_bg">#FFFFFF</color>
+    <color name="text_primary">#1B1F23</color>
+    <color name="text_secondary">#5F6B76</color>
+    <color name="widget_bg">#F2FFFFFF</color>
+    <color name="widget_text">#1B1F23</color>
+    <color name="widget_text_secondary">#5F6B76</color>
+    <color name="launcher_bg">#1E6B8F</color>
+</resources>

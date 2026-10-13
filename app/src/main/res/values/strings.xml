@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Backrest</string>
+    <string name="settings">Einstellungen</string>
+    <string name="widget_label">Backrest-Status</string>
+    <string name="widget_description">Status deiner Backrest-Backup-Pläne</string>
+    <string name="widget_not_configured">Tippen zum Einrichten</string>
+    <string name="refreshing">Aktualisiere …</string>
+    <string name="refresh">Aktualisieren</string>
+    <string name="open_web">Weboberfläche öffnen</string>
+    <string name="no_data">Noch keine Daten</string>
+    <string name="plans">Pläne</string>
+    <string name="repos">Repositories</string>
+    <string name="start_backup">Backup starten</string>
+    <string name="server_url">Server-URL</string>
+    <string name="server_url_hint">https://backrest.example.at oder http://192.168.1.10:9898</string>
+    <string name="username">Benutzer (leer, wenn Anmeldung deaktiviert)</string>
+    <string name="password">Passwort</string>
+    <string name="password_saved">(gespeichert – leer lassen zum Behalten)</string>
+    <string name="interval">Widget-Aktualisierung alle … Minuten (min. 15)</string>
+    <string name="notify">Benachrichtigen, wenn ein Backup fehlschlägt</string>
+    <string name="save">Speichern &amp; verbinden</string>
+    <string name="url_required">URL erforderlich</string>
+    <string name="testing">Verbinde …</string>
+    <string name="test_ok">Verbunden – %1$d Pläne gefunden</string>
+    <string name="test_failed">Fehler: %1$s</string>
+    <string name="channel_failures">Fehlgeschlagene Backups</string>
+    <string name="notify_failed_title">Backup „%1$s“ fehlgeschlagen</string>
+    <string name="notify_failed_text">Gestartet %1$s</string>
+</resources>

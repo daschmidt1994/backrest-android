@@ -1,0 +1,95 @@
+{
+ "repoSummaries": [
+  {
+   "id": "local",
+   "backupsSuccessLast30days": "1",
+   "bytesScannedLast30days": "6",
+   "bytesAddedLast30days": "2952",
+   "bytesScannedAvg": "6",
+   "bytesAddedAvg": "2952",
+   "nextBackupTimeMs": "1791939600000",
+   "recentBackups": {
+    "flowId": [
+     "2"
+    ],
+    "timestampMs": [
+     "1791918995486"
+    ],
+    "durationMs": [
+     "1493"
+    ],
+    "status": [
+     "STATUS_SUCCESS"
+    ],
+    "bytesAdded": [
+     "2952"
+    ]
+   },
+   "protectedBytes": "6",
+   "historyLast30days": [
+    {
+     "timestampMs": "1791842400000",
+     "bytesAdded": "2952",
+     "bytesScanned": "6",
+     "statusCounts": [
+      {
+       "count": "1",
+       "status": "STATUS_SUCCESS"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "planSummaries": [
+  {
+   "id": "docs",
+   "backupsSuccessLast30days": "1",
+   "bytesScannedLast30days": "6",
+   "bytesAddedLast30days": "2952",
+   "bytesScannedAvg": "6",
+   "bytesAddedAvg": "2952",
+   "nextBackupTimeMs": "1791939600000",
+   "recentBackups": {
+    "flowId": [
+     "2"
+    ],
+    "timestampMs": [
+     "1791918995486"
+    ],
+    "durationMs": [
+     "1493"
+    ],
+    "status": [
+     "STATUS_SUCCESS"
+    ],
+    "bytesAdded": [
+     "2952"
+    ]
+   },
+   "protectedBytes": "6",
+   "historyLast30days": [
+    {
+     "timestampMs": "1791842400000",
+     "bytesAdded": "2952",
+     "bytesScanned": "6",
+     "statusCounts": [
+      {
+       "count": "1",
+       "status": "STATUS_SUCCESS"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "manuell",
+   "recentBackups": {},
+   "historyLast30days": [
+    {
+     "timestampMs": "1791842400000"
+    }
+   ]
+  }
+ ]
+}
