@@ -103,3 +103,53 @@ class RealResponseTest {
         assertEquals(Health.OK, s.health)
     }
 }
+
+class RunningOperationsTest {
+    private fun resource(name: String) = JSONObject(javaClass.classLoader!!.getResource(name).readText())
+
+    @Test
+    fun parsesRunningBackupWithProgress() {
+        val ops = RunningOp.fromOperations(resource("operations_running.json"))
+        // finished, pending and index operations are ignored
+        assertEquals(listOf(13L, 14L), ops.map { it.id })
+
+        val backup = ops[0]
+        assertEquals(OpKind.BACKUP, backup.kind)
+        assertEquals("gross", backup.planId)
+        assertEquals(0.8167, backup.percent!!, 0.001)
+        assertEquals(688483652L, backup.bytesDone)
+        assertEquals(842956800L, backup.totalBytes)
+        assertEquals(200L, backup.filesDone)
+        assertEquals(201L, backup.totalFiles)
+        assertEquals("/var/tmp/brtest-src/big.bin", backup.currentFile)
+
+        val prune = ops[1]
+        assertEquals(OpKind.PRUNE, prune.kind)
+        assertNull(prune.planId)
+        assertNull(prune.percent)
+        assertEquals("Prune · Repo local", prune.title)
+    }
+
+    @Test
+    fun attachesRunningBackupToPlan() {
+        val dashboard = JSONObject(
+            """{"planSummaries":[{"id":"gross","recentBackups":{"timestampMs":["1"],"durationMs":["1"],"status":["STATUS_SUCCESS"]}},{"id":"docs"}]}"""
+        )
+        val s = Snapshot.fromDashboard(dashboard, 0, resource("operations_running.json"))
+        val gross = s.plans.first { it.id == "gross" }
+        assertEquals(13L, gross.activeBackup?.id)
+        assertTrue(gross.running)
+        assertEquals(Health.RUNNING, gross.health)
+        assertNull(s.plans.first { it.id == "docs" }.activeBackup)
+        // the prune has no plan row, the backup has
+        assertEquals(listOf(14L), s.otherRunning.map { it.id })
+        assertEquals("2 Aufgaben laufen", Format.overall(s))
+        assertEquals(s, Snapshot.fromJson(s.toJson()))
+    }
+
+    @Test
+    fun withoutOperationsNothingRuns() {
+        val s = Snapshot.fromDashboard(JSONObject("""{"planSummaries":[{"id":"a"}]}"""), 0, null)
+        assertTrue(s.running.isEmpty())
+    }
+}

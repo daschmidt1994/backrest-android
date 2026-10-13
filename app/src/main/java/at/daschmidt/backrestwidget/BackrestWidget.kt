@@ -105,7 +105,11 @@ class BackrestWidget : AppWidgetProvider() {
                 return views
             }
             views.setViewVisibility(R.id.widget_rows, View.VISIBLE)
-            for (plan in snapshot.plans.take(MAX_ROWS)) {
+            val others = snapshot.otherRunning
+            for (op in others.take(MAX_ROWS)) {
+                views.addView(R.id.widget_rows, opRow(context, op))
+            }
+            for (plan in snapshot.plans.take((MAX_ROWS - others.size).coerceAtLeast(0))) {
                 views.addView(R.id.widget_rows, row(context, plan))
             }
             return views
@@ -115,6 +119,11 @@ class BackrestWidget : AppWidgetProvider() {
             val row = RemoteViews(context.packageName, R.layout.widget_row)
             row.setInt(R.id.row_dot, "setColorFilter", Format.healthColor(context, plan.health))
             row.setTextViewText(R.id.row_name, plan.id)
+            val active = plan.activeBackup
+            if (active != null) {
+                showProgress(context, row, active)
+                return row
+            }
             val last = plan.lastFinished
             row.setTextViewText(
                 R.id.row_last,
@@ -127,6 +136,24 @@ class BackrestWidget : AppWidgetProvider() {
             val next = plan.nextBackupMs
             row.setTextViewText(R.id.row_next, if (next != null) "nächstes ${Format.dayAndTime(context, next)}" else "kein Zeitplan")
             return row
+        }
+
+        /** Row for a running task that has no plan row of its own (prune, check, …). */
+        private fun opRow(context: Context, op: RunningOp): RemoteViews {
+            val row = RemoteViews(context.packageName, R.layout.widget_row)
+            row.setInt(R.id.row_dot, "setColorFilter", Format.healthColor(context, Health.RUNNING))
+            row.setTextViewText(R.id.row_name, op.title)
+            showProgress(context, row, op)
+            return row
+        }
+
+        private fun showProgress(context: Context, row: RemoteViews, op: RunningOp) {
+            row.setTextViewText(R.id.row_last, Format.percent(op) ?: "läuft …")
+            val detail = Format.amounts(op).ifEmpty { "seit ${Format.time(context, op.startMs)}" }
+            row.setTextViewText(R.id.row_next, detail)
+            row.setViewVisibility(R.id.row_progress, View.VISIBLE)
+            val percent = op.percent
+            row.setProgressBar(R.id.row_progress, 1000, ((percent ?: 0.0) * 1000).toInt(), percent == null)
         }
     }
 }

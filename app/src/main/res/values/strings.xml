@@ -10,6 +10,8 @@
     <string name="open_web">Weboberfläche öffnen</string>
     <string name="no_data">Noch keine Daten</string>
     <string name="plans">Pläne</string>
+    <string name="running">Läuft gerade</string>
+    <string name="cancel_operation">Abbrechen</string>
     <string name="repos">Repositories</string>
     <string name="start_backup">Backup starten</string>
     <string name="server_url">Server-URL</string>

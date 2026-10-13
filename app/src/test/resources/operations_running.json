@@ -1,0 +1,54 @@
+{
+ "operations": [
+  {
+   "id": "11",
+   "planId": "gross",
+   "repoId": "langsam",
+   "status": "STATUS_SUCCESS",
+   "unixTimeStartMs": "1791921000000",
+   "operationIndexSnapshot": {}
+  },
+  {
+   "id": "13",
+   "modno": "29",
+   "flowId": "13",
+   "repoId": "langsam",
+   "repoGuid": "f27fdecf885521592e1eb655d6c441f67f26c6bfa967bd50fae63a16596e0330",
+   "planId": "gross",
+   "instanceId": "android-test",
+   "status": "STATUS_INPROGRESS",
+   "unixTimeStartMs": "1791921684296",
+   "logref": "t-9c01ad71-1156-4a24-a255-1a87cb23f561",
+   "operationBackup": {
+    "lastStatus": {
+     "status": {
+      "percentDone": 0.8167484407267371,
+      "totalFiles": "201",
+      "totalBytes": "842956800",
+      "filesDone": "200",
+      "bytesDone": "688483652",
+      "currentFile": [
+       "/var/tmp/brtest-src/big.bin"
+      ]
+     }
+    }
+   }
+  },
+  {
+   "id": "14",
+   "planId": "_system_",
+   "repoId": "local",
+   "status": "STATUS_INPROGRESS",
+   "unixTimeStartMs": "1791921690000",
+   "operationPrune": {}
+  },
+  {
+   "id": "15",
+   "planId": "docs",
+   "repoId": "local",
+   "status": "STATUS_PENDING",
+   "unixTimeStartMs": "1791939600000",
+   "operationBackup": {}
+  }
+ ]
+}

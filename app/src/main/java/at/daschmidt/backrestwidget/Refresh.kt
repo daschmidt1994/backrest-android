@@ -25,6 +25,8 @@ import java.util.concurrent.TimeUnit
 object Refresher {
     private const val PERIODIC = "refresh_periodic"
     private const val ONE_SHOT = "refresh_now"
+    private const val WHILE_RUNNING = "refresh_running"
+    private const val RUNNING_INTERVAL_S = 60L
     private const val CHANNEL = "failures"
     private const val NOTIFY_MAX_AGE_MS = 24 * 3600_000L
 
@@ -33,7 +35,11 @@ object Refresher {
         val settings = Settings(context)
         val now = System.currentTimeMillis()
         val result = runCatching {
-            Snapshot.fromDashboard(BackrestClient(settings).summaryDashboard(), now)
+            val client = BackrestClient(settings)
+            val dashboard = client.summaryDashboard()
+            // Progress is optional: older servers or hiccups must not break the overview.
+            val operations = runCatching { client.recentOperations() }.getOrNull()
+            Snapshot.fromDashboard(dashboard, now, operations)
         }.recoverCatching { e ->
             throw if (e is SocketTimeoutException) BackrestException("Zeitüberschreitung") else e
         }
@@ -42,6 +48,7 @@ object Refresher {
             settings.snapshot = it
             settings.lastError = null
             notifyFailures(context, settings, it)
+            if (it.running.isNotEmpty()) followUpWhileRunning(context)
         }.onFailure {
             settings.lastError = it.message ?: it.javaClass.simpleName
         }
@@ -66,6 +73,15 @@ object Refresher {
     fun refreshSoon(context: Context) {
         val request = OneTimeWorkRequestBuilder<RefreshWorker>().build()
         WorkManager.getInstance(context).enqueueUniqueWork(ONE_SHOT, ExistingWorkPolicy.REPLACE, request)
+    }
+
+    /** Keep the widget's progress roughly current while something runs; stops once idle. */
+    private fun followUpWhileRunning(context: Context) {
+        val request = OneTimeWorkRequestBuilder<RefreshWorker>()
+            .setInitialDelay(RUNNING_INTERVAL_S, TimeUnit.SECONDS)
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .build()
+        WorkManager.getInstance(context).enqueueUniqueWork(WHILE_RUNNING, ExistingWorkPolicy.REPLACE, request)
     }
 
     fun createChannel(context: Context) {

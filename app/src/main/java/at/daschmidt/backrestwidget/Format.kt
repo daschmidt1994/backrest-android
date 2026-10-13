@@ -79,15 +79,27 @@ object Format {
     fun overall(snapshot: Snapshot): String {
         val failed = snapshot.plans.count { it.health == Health.ERROR }
         val warned = snapshot.plans.count { it.health == Health.WARNING }
-        val running = snapshot.plans.count { it.running }
+        val running = snapshot.running
         return when {
-            snapshot.plans.isEmpty() -> "Keine Pläne"
+            snapshot.plans.isEmpty() && running.isEmpty() -> "Keine Pläne"
             failed > 0 -> "$failed fehlgeschlagen"
             warned > 0 -> if (warned == 1) "1 Warnung" else "$warned Warnungen"
-            running > 0 -> "Backup läuft"
+            running.size == 1 -> "${running[0].kind.label} läuft"
+            running.size > 1 -> "${running.size} Aufgaben laufen"
+            snapshot.plans.any { it.running } -> "Backup läuft"
             else -> "Alles OK"
         }
     }
+
+    fun percent(op: RunningOp): String? = op.percent?.let { "${(it * 100).toInt()} %" }
+
+    /** "656 MiB / 804 MiB · 200/201 Dateien", parts omitted when unknown. */
+    fun amounts(op: RunningOp): String = listOfNotNull(
+        if (op.totalBytes > 0) "${bytes(op.bytesDone)} / ${bytes(op.totalBytes)}" else null,
+        if (op.totalFiles > 0) "${op.filesDone}/${op.totalFiles} Dateien" else null,
+    ).joinToString(" · ")
+
+    fun fileName(path: String): String = path.trimEnd('/').substringAfterLast('/').ifEmpty { path }
 
     private fun dayIndex(timeMs: Long): Long {
         val c = Calendar.getInstance().apply { timeInMillis = timeMs }

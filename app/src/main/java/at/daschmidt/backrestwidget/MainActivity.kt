@@ -8,11 +8,14 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 
@@ -20,6 +23,9 @@ class MainActivity : Activity() {
 
     private lateinit var settings: Settings
     private var refreshing = false
+    private var resumed = false
+    private val handler = Handler(Looper.getMainLooper())
+    private val poll = Runnable { refresh() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,9 +55,16 @@ class MainActivity : Activity() {
             finish()
             return
         }
+        resumed = true
         Refresher.schedule(this)
         render()
         refresh()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        resumed = false
+        handler.removeCallbacks(poll)
     }
 
     private fun refresh() {
@@ -65,6 +78,12 @@ class MainActivity : Activity() {
                 if (!isDestroyed) {
                     findViewById<View>(R.id.progress).visibility = View.INVISIBLE
                     render()
+                    // Keep polling while in front; closely while something runs.
+                    handler.removeCallbacks(poll)
+                    if (resumed) {
+                        val busy = settings.snapshot?.running?.isNotEmpty() == true
+                        handler.postDelayed(poll, if (busy) POLL_RUNNING_MS else POLL_IDLE_MS)
+                    }
                 }
             }
         }.start()
@@ -89,6 +108,12 @@ class MainActivity : Activity() {
         }
 
         val inflater = LayoutInflater.from(this)
+        val running = findViewById<LinearLayout>(R.id.running)
+        running.removeAllViews()
+        snapshot?.running?.forEach { running.addView(runningView(inflater, running, it)) }
+        findViewById<View>(R.id.running_label).visibility =
+            if (snapshot?.running.isNullOrEmpty()) View.GONE else View.VISIBLE
+
         val plans = findViewById<LinearLayout>(R.id.plans)
         plans.removeAllViews()
         snapshot?.plans?.forEach { plans.addView(planView(inflater, plans, it)) }
@@ -119,6 +144,8 @@ class MainActivity : Activity() {
             else -> "Letztes Backup: ${Format.dateTime(this, last.startMs)} · ${Format.statusLabel(last.status)} · ${Format.duration(last.durationMs)}"
         }
         view.findViewById<TextView>(R.id.plan_next).text = when {
+            plan.activeBackup != null ->
+                listOfNotNull("Backup läuft gerade", Format.percent(plan.activeBackup)).joinToString(" · ")
             plan.running -> "Backup läuft gerade"
             plan.nextBackupMs != null -> "Nächstes Backup: ${Format.dateTime(this, plan.nextBackupMs)}"
             else -> "Kein Zeitplan"
@@ -143,6 +170,51 @@ class MainActivity : Activity() {
             setOnClickListener { confirmBackup(plan.id) }
         }
         return view
+    }
+
+    private fun runningView(inflater: LayoutInflater, parent: LinearLayout, op: RunningOp): View {
+        val view = inflater.inflate(R.layout.item_running, parent, false)
+        view.findViewById<TextView>(R.id.op_title).text = op.title
+        view.findViewById<TextView>(R.id.op_percent).text = Format.percent(op) ?: ""
+        view.findViewById<ProgressBar>(R.id.op_progress).apply {
+            isIndeterminate = op.percent == null
+            progress = ((op.percent ?: 0.0) * 1000).toInt()
+        }
+        view.findViewById<TextView>(R.id.op_amounts).apply {
+            text = Format.amounts(op)
+            visibility = if (text.isEmpty()) View.GONE else View.VISIBLE
+        }
+        view.findViewById<TextView>(R.id.op_file).apply {
+            text = op.currentFile?.let { "Aktuell: $it" }
+            visibility = if (op.currentFile == null) View.GONE else View.VISIBLE
+        }
+        view.findViewById<TextView>(R.id.op_since).text =
+            "Gestartet ${Format.dateTime(this, op.startMs)} · läuft seit ${Format.duration(System.currentTimeMillis() - op.startMs)}"
+        view.findViewById<Button>(R.id.op_cancel).setOnClickListener { confirmCancel(op) }
+        return view
+    }
+
+    private fun confirmCancel(op: RunningOp) {
+        AlertDialog.Builder(this)
+            .setTitle("Abbrechen?")
+            .setMessage("„${op.title}“ wirklich abbrechen?")
+            .setNegativeButton("Weiterlaufen lassen", null)
+            .setPositiveButton("Abbrechen") { _, _ ->
+                val context = applicationContext
+                Thread {
+                    val message = try {
+                        BackrestClient(Settings(context)).cancel(op.id)
+                        "Abbruch angefordert"
+                    } catch (e: Exception) {
+                        "Abbrechen fehlgeschlagen: ${e.message}"
+                    }
+                    runOnUiThread {
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                        if (!isDestroyed) refresh()
+                    }
+                }.start()
+            }
+            .show()
     }
 
     private fun confirmBackup(planId: String) {
@@ -173,6 +245,8 @@ class MainActivity : Activity() {
 
     private companion object {
         const val HISTORY_BARS = 30
+        const val POLL_RUNNING_MS = 3_000L
+        const val POLL_IDLE_MS = 30_000L
     }
 }
 

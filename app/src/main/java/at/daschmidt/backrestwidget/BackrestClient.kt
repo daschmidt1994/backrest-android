@@ -31,6 +31,15 @@ class BackrestClient(private val settings: Settings) {
 
     fun summaryDashboard(): JSONObject = call("GetSummaryDashboard", JSONObject())
 
+    /** The newest [lastN] operations of all plans and repositories (empty selector). */
+    fun recentOperations(lastN: Int = 100): JSONObject =
+        call("GetOperations", JSONObject().put("selector", JSONObject()).put("lastN", lastN.toString()))
+
+    /** Ask Backrest to cancel a running operation. Not guaranteed to succeed immediately. */
+    fun cancel(operationId: Long) {
+        call("Cancel", JSONObject().put("operationId", operationId.toString()))
+    }
+
     /**
      * Start a backup of [planId]. Backrest only answers once the backup has
      * finished, but its handler does not watch the request context, so the
