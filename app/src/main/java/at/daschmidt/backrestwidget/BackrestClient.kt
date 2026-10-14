@@ -47,6 +47,10 @@ class BackrestClient(private val settings: Settings) {
      * Peer states of a multihost server (its client instances). Empty when the
      * server has no multihost sync. The messages include each peer's remote
      * config with repository passwords – callers must keep only what they need.
+     *
+     * Backrest ends a stream requested without subscription by cancelling it
+     * while peer states may still be queued, so peers go missing at random.
+     * The stream is therefore subscribed and read until it stays quiet.
      */
     fun peerStates(): List<JSONObject> {
         if (settings.token == null && settings.username.isNotEmpty()) login()
@@ -69,23 +73,33 @@ class BackrestClient(private val settings: Settings) {
         try {
             conn.requestMethod = "POST"
             conn.connectTimeout = CONNECT_TIMEOUT_MS
-            conn.readTimeout = READ_TIMEOUT_MS
+            // The subscribed stream never ends by itself: a quiet stream means
+            // the initial burst of peer states is complete.
+            conn.readTimeout = PEER_IDLE_MS
             conn.instanceFollowRedirects = false
             conn.doOutput = true
             conn.setRequestProperty("Content-Type", "application/connect+json")
             conn.setRequestProperty("Connect-Protocol-Version", "1")
             settings.token?.let { conn.setRequestProperty("Authorization", "Bearer $it") }
-            conn.outputStream.use { it.write(envelope(JSONObject().put("subscribe", false))) }
+            conn.outputStream.use { it.write(envelope(JSONObject().put("subscribe", true))) }
 
             val status = conn.responseCode
             if (status == 404) return emptyList() // Backrest without multihost sync
             if (status != 200) {
                 throw errorFrom(status, conn.errorStream?.bufferedReader()?.use { it.readText() } ?: "")
             }
-            val peers = mutableListOf<JSONObject>()
+            // Keyed by peer: a peer is sent again when its state changes.
+            val peers = linkedMapOf<String, JSONObject>()
             DataInputStream(conn.inputStream.buffered()).use { input ->
                 while (true) {
-                    val flags = try { input.readUnsignedByte() } catch (e: EOFException) { break }
+                    val flags = try {
+                        input.readUnsignedByte()
+                    } catch (e: EOFException) {
+                        break
+                    } catch (e: SocketTimeoutException) {
+                        if (peers.isEmpty()) throw BackrestException("Keine Antwort zu Remote-Instanzen")
+                        break
+                    }
                     val length = input.readInt()
                     if (length < 0 || length > MAX_FRAME) throw BackrestException("Ungültige Antwort (Frame)")
                     val bytes = ByteArray(length).also { input.readFully(it) }
@@ -101,10 +115,10 @@ class BackrestClient(private val settings: Settings) {
                         }
                         break
                     }
-                    peers += message
+                    peers[message.optString("peerKeyid").ifEmpty { message.optString("peerInstanceId") }] = message
                 }
             }
-            return peers
+            return peers.values.toList()
         } catch (e: SocketTimeoutException) {
             throw BackrestException("Zeitüberschreitung")
         } catch (e: SSLException) {
@@ -222,6 +236,7 @@ class BackrestClient(private val settings: Settings) {
         const val READ_TIMEOUT_MS = 20_000
         const val BACKUP_CONFIRM_MS = 10_000
         const val END_STREAM = 0x02
+        const val PEER_IDLE_MS = 1_500
         const val MAX_FRAME = 32 * 1024 * 1024
     }
 }
