@@ -27,6 +27,12 @@
             android:textStyle="bold" />
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/plan_remote"
+        style="@style/Secondary"
+        android:layout_marginTop="2dp"
+        android:textColor="@color/accent"
+        android:visibility="gone" />
     <TextView android:id="@+id/plan_last" style="@style/Secondary" android:layout_marginTop="6dp" />
     <TextView android:id="@+id/plan_next" style="@style/Secondary" />
     <TextView android:id="@+id/plan_stats" style="@style/Secondary" />

@@ -39,7 +39,14 @@ object Refresher {
             val dashboard = client.summaryDashboard()
             // Progress is optional: older servers or hiccups must not break the overview.
             val operations = runCatching { client.recentOperations() }.getOrNull()
-            Snapshot.fromDashboard(dashboard, now, operations)
+            // Multihost: client instances of this server, e.g. VPS backed up via Backrest.
+            val remotes = runCatching { client.peerStates().mapNotNull { RemoteState.from(it) } }
+                .getOrElse { if (it is AuthException) throw it else settings.snapshot?.remotes.orEmpty() }
+            val remoteOperations = remotes.flatMap { remote -> remote.planIds.map { remote.instance to it } }
+                .mapNotNull { (instance, planId) ->
+                    runCatching { "$instance/$planId" to client.planOperations(instance, planId) }.getOrNull()
+                }.toMap()
+            Snapshot.fromDashboard(dashboard, now, operations, remotes, remoteOperations)
         }.recoverCatching { e ->
             throw if (e is SocketTimeoutException) BackrestException("Zeitüberschreitung") else e
         }

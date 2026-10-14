@@ -1,6 +1,9 @@
 package at.daschmidt.backrestwidget
 
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
+import java.io.DataInputStream
+import java.io.EOFException
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
@@ -30,6 +33,97 @@ class BackrestClient(private val settings: Settings) {
     }
 
     fun summaryDashboard(): JSONObject = call("GetSummaryDashboard", JSONObject())
+
+    /** Operations of one plan of a remote (multihost client) instance. */
+    fun planOperations(instance: String, planId: String, lastN: Int = 60): JSONObject =
+        call(
+            "GetOperations",
+            JSONObject()
+                .put("selector", JSONObject().put("instanceId", instance).put("planId", planId))
+                .put("lastN", lastN.toString()),
+        )
+
+    /**
+     * Peer states of a multihost server (its client instances). Empty when the
+     * server has no multihost sync. The messages include each peer's remote
+     * config with repository passwords – callers must keep only what they need.
+     */
+    fun peerStates(): List<JSONObject> {
+        if (settings.token == null && settings.username.isNotEmpty()) login()
+        return try {
+            streamPeerStates()
+        } catch (e: AuthException) {
+            if (settings.username.isEmpty()) throw e
+            settings.token = null
+            login()
+            streamPeerStates()
+        }
+    }
+
+    private fun streamPeerStates(): List<JSONObject> {
+        val conn = try {
+            URL("$base/v1sync.BackrestSyncStateService/GetPeerSyncStatesStream").openConnection() as HttpURLConnection
+        } catch (e: Exception) {
+            throw BackrestException("Ungültige Server-URL")
+        }
+        try {
+            conn.requestMethod = "POST"
+            conn.connectTimeout = CONNECT_TIMEOUT_MS
+            conn.readTimeout = READ_TIMEOUT_MS
+            conn.instanceFollowRedirects = false
+            conn.doOutput = true
+            conn.setRequestProperty("Content-Type", "application/connect+json")
+            conn.setRequestProperty("Connect-Protocol-Version", "1")
+            settings.token?.let { conn.setRequestProperty("Authorization", "Bearer $it") }
+            conn.outputStream.use { it.write(envelope(JSONObject().put("subscribe", false))) }
+
+            val status = conn.responseCode
+            if (status == 404) return emptyList() // Backrest without multihost sync
+            if (status != 200) {
+                throw errorFrom(status, conn.errorStream?.bufferedReader()?.use { it.readText() } ?: "")
+            }
+            val peers = mutableListOf<JSONObject>()
+            DataInputStream(conn.inputStream.buffered()).use { input ->
+                while (true) {
+                    val flags = try { input.readUnsignedByte() } catch (e: EOFException) { break }
+                    val length = input.readInt()
+                    if (length < 0 || length > MAX_FRAME) throw BackrestException("Ungültige Antwort (Frame)")
+                    val bytes = ByteArray(length).also { input.readFully(it) }
+                    val message = if (length == 0) JSONObject() else JSONObject(String(bytes))
+                    if (flags and END_STREAM != 0) {
+                        val error = message.optJSONObject("error")
+                        // Without a subscription the server ends the stream by cancelling it.
+                        when (val code = error?.optString("code").orEmpty()) {
+                            "", "canceled" -> {}
+                            "unimplemented" -> return emptyList()
+                            "unauthenticated", "permission_denied" -> throw AuthException(code)
+                            else -> throw BackrestException("$code: ${error?.optString("message")}")
+                        }
+                        break
+                    }
+                    peers += message
+                }
+            }
+            return peers
+        } catch (e: SocketTimeoutException) {
+            throw BackrestException("Zeitüberschreitung")
+        } catch (e: SSLException) {
+            throw BackrestException("TLS-Fehler: ${e.message}")
+        } catch (e: IOException) {
+            throw BackrestException("Server nicht erreichbar (${e.javaClass.simpleName})")
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    private fun envelope(message: JSONObject): ByteArray {
+        val body = message.toString().toByteArray()
+        return ByteArrayOutputStream().apply {
+            write(0)
+            write(body.size ushr 24); write(body.size ushr 16); write(body.size ushr 8); write(body.size)
+            write(body)
+        }.toByteArray()
+    }
 
     /** The newest [lastN] operations of all plans and repositories (empty selector). */
     fun recentOperations(lastN: Int = 100): JSONObject =
@@ -127,5 +221,7 @@ class BackrestClient(private val settings: Settings) {
         const val CONNECT_TIMEOUT_MS = 10_000
         const val READ_TIMEOUT_MS = 20_000
         const val BACKUP_CONFIRM_MS = 10_000
+        const val END_STREAM = 0x02
+        const val MAX_FRAME = 32 * 1024 * 1024
     }
 }

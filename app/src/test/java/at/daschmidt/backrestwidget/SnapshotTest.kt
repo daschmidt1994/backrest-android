@@ -153,3 +153,73 @@ class RunningOperationsTest {
         assertTrue(s.running.isEmpty())
     }
 }
+
+class RemoteInstancesTest {
+    private fun resource(name: String) = JSONObject(javaClass.classLoader!!.getResource(name).readText())
+
+    private fun peer() = org.json.JSONArray(javaClass.classLoader!!.getResource("peer_states_1_14.json").readText()).getJSONObject(0)
+
+    @Test
+    fun parsesPeerWithoutKeepingSecrets() {
+        val remote = RemoteState.from(peer())!!
+        assertEquals("netbird-vps", remote.instance)
+        assertTrue(remote.connected)
+        assertEquals(listOf("netbird-system"), remote.planIds)
+        assertTrue(remote.lastHeartbeatMs!! > 0)
+        assertFalse(remote.toString().contains("fixture-repo-password"))
+        assertFalse(remote.toString().contains("fixture-rest-password"))
+    }
+
+    @Test
+    fun peerWithoutConfigUsesKnownPlans() {
+        val remote = RemoteState.from(
+            JSONObject("""{"peerInstanceId":"laptop","state":"CONNECTION_STATE_RETRY_WAIT","knownPlans":[{"id":"home"}]}""")
+        )!!
+        assertFalse(remote.connected)
+        assertEquals("retry_wait", remote.state)
+        assertEquals(listOf("home"), remote.planIds)
+        assertNull(RemoteState.from(JSONObject("""{"peerInstanceId":""}""")))
+    }
+
+    @Test
+    fun remotePlansFromSyncedOperations() {
+        val remote = RemoteState.from(peer())!!
+        val dashboard = JSONObject("""{"planSummaries":[{"id":"netbird-system","backupsSuccessLast30days":"9"}]}""")
+        // "now" between the finished backup and the scheduled (pending) one
+        val now = 1791972446639L + 60_000
+        val s = Snapshot.fromDashboard(
+            dashboard, now, null, listOf(remote),
+            mapOf("netbird-vps/netbird-system" to resource("remote_operations_1_14.json")),
+        )
+        // A local plan with the same ID stays separate from the remote one.
+        assertEquals(2, s.plans.size)
+        val local = s.plans.first { !it.isRemote }
+        assertEquals(9, local.success30d)
+        val plan = s.plans.first { it.isRemote }
+        assertEquals("netbird-vps", plan.instance)
+        assertEquals(OpStatus.SUCCESS, plan.lastFinished?.status)
+        assertEquals(1791972445924L, plan.lastFinished?.startMs)
+        assertEquals(1792026000000L, plan.nextBackupMs)
+        assertEquals(1, plan.success30d)
+        assertEquals(Health.OK, plan.health)
+        assertEquals(s, Snapshot.fromJson(s.toJson()))
+    }
+
+    @Test
+    fun remoteRunningBackupBelongsToRemotePlan() {
+        val remote = RemoteState("vps", "connected", null, listOf("system"))
+        val ops = JSONObject(
+            """{"operations":[{"id":"7","instanceId":"vps","planId":"system","repoId":"r","status":"STATUS_INPROGRESS",
+               "unixTimeStartMs":"1000","operationBackup":{"lastStatus":{"status":{"percentDone":0.5}}}}]}"""
+        )
+        val s = Snapshot.fromDashboard(
+            JSONObject("""{"planSummaries":[{"id":"system"}]}"""), 2000, ops, listOf(remote), mapOf("vps/system" to ops),
+        )
+        val remotePlan = s.plans.first { it.isRemote }
+        val localPlan = s.plans.first { !it.isRemote }
+        assertEquals(7L, remotePlan.activeBackup?.id)
+        assertNull(localPlan.activeBackup)
+        assertTrue(s.isRemote(s.running.single()))
+        assertTrue(s.otherRunning.isEmpty())
+    }
+}

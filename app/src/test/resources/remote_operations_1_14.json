@@ -1,0 +1,93 @@
+{
+ "operations": [
+  {
+   "id": "1",
+   "originalId": "2",
+   "modno": "2",
+   "flowId": "1",
+   "originalFlowId": "2",
+   "repoId": "netbird-vps",
+   "repoGuid": "22fc74a1304be4ff548c1bcebf8e8a7b02a89ba07ff2b46516027b38c49209d0",
+   "planId": "netbird-system",
+   "instanceId": "netbird-vps",
+   "originalInstanceKeyid": "ed25519.gwgMRaWBt9JPuZSs25mc-bAPiX5rnBVt3uBTs5M3iYM",
+   "status": "STATUS_PENDING",
+   "unixTimeStartMs": "1792026000000",
+   "operationBackup": {}
+  },
+  {
+   "id": "2",
+   "originalId": "3",
+   "modno": "6",
+   "flowId": "2",
+   "originalFlowId": "3",
+   "repoId": "netbird-vps",
+   "repoGuid": "22fc74a1304be4ff548c1bcebf8e8a7b02a89ba07ff2b46516027b38c49209d0",
+   "planId": "netbird-system",
+   "instanceId": "netbird-vps",
+   "originalInstanceKeyid": "ed25519.gwgMRaWBt9JPuZSs25mc-bAPiX5rnBVt3uBTs5M3iYM",
+   "snapshotId": "b309911070447b029b7ce1f0669c11d44c33b3a8245d1fd18186f33ccd90098d",
+   "status": "STATUS_SUCCESS",
+   "unixTimeStartMs": "1791972445924",
+   "unixTimeEndMs": "1791972447472",
+   "logref": "t-6969797c-f1a7-4648-9071-f87d9e6426dd",
+   "operationBackup": {
+    "lastStatus": {
+     "summary": {
+      "filesNew": "1",
+      "dirsNew": "7",
+      "dataBlobs": "1",
+      "treeBlobs": "8",
+      "dataAdded": "2953",
+      "totalFilesProcessed": "1",
+      "totalBytesProcessed": "6",
+      "totalDuration": 0.831494779,
+      "snapshotId": "b309911070447b029b7ce1f0669c11d44c33b3a8245d1fd18186f33ccd90098d"
+     }
+    }
+   }
+  },
+  {
+   "id": "3",
+   "originalId": "4",
+   "modno": "7",
+   "flowId": "2",
+   "originalFlowId": "3",
+   "repoId": "netbird-vps",
+   "repoGuid": "22fc74a1304be4ff548c1bcebf8e8a7b02a89ba07ff2b46516027b38c49209d0",
+   "planId": "netbird-system",
+   "instanceId": "netbird-vps",
+   "originalInstanceKeyid": "ed25519.gwgMRaWBt9JPuZSs25mc-bAPiX5rnBVt3uBTs5M3iYM",
+   "snapshotId": "b309911070447b029b7ce1f0669c11d44c33b3a8245d1fd18186f33ccd90098d",
+   "status": "STATUS_SUCCESS",
+   "unixTimeStartMs": "1791972446639",
+   "unixTimeEndMs": "1791972447470",
+   "operationIndexSnapshot": {
+    "snapshot": {
+     "id": "b309911070447b029b7ce1f0669c11d44c33b3a8245d1fd18186f33ccd90098d",
+     "unixTimeMs": "1791972446639",
+     "hostname": "claude",
+     "username": "root",
+     "tree": "e62543ef5b53d4059b3d940de022f5f682184e590a3456b27b0d5f300e1d4894",
+     "paths": [
+      "/opt"
+     ],
+     "tags": [
+      "plan:netbird-system",
+      "created-by:netbird-vps"
+     ],
+     "summary": {
+      "filesNew": "1",
+      "dirsNew": "7",
+      "dataBlobs": "1",
+      "treeBlobs": "8",
+      "dataAdded": "2953",
+      "totalFilesProcessed": "1",
+      "totalBytesProcessed": "6",
+      "totalDuration": 0.831
+     }
+    }
+   }
+  }
+ ]
+}

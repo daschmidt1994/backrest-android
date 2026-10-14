@@ -110,13 +110,15 @@ class MainActivity : Activity() {
         val inflater = LayoutInflater.from(this)
         val running = findViewById<LinearLayout>(R.id.running)
         running.removeAllViews()
-        snapshot?.running?.forEach { running.addView(runningView(inflater, running, it)) }
+        snapshot?.running?.forEach { running.addView(runningView(inflater, running, it, snapshot.isRemote(it))) }
         findViewById<View>(R.id.running_label).visibility =
             if (snapshot?.running.isNullOrEmpty()) View.GONE else View.VISIBLE
 
         val plans = findViewById<LinearLayout>(R.id.plans)
         plans.removeAllViews()
-        snapshot?.plans?.forEach { plans.addView(planView(inflater, plans, it)) }
+        snapshot?.plans?.forEach { plan ->
+            plans.addView(planView(inflater, plans, plan, snapshot.remotes.firstOrNull { it.instance == plan.instance }))
+        }
         findViewById<View>(R.id.plans_label).visibility = if (snapshot?.plans.isNullOrEmpty()) View.GONE else View.VISIBLE
 
         val repos = findViewById<LinearLayout>(R.id.repos)
@@ -133,10 +135,18 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.repos_label).visibility = if (snapshot?.repos.isNullOrEmpty()) View.GONE else View.VISIBLE
     }
 
-    private fun planView(inflater: LayoutInflater, parent: LinearLayout, plan: PlanState): View {
+    private fun planView(inflater: LayoutInflater, parent: LinearLayout, plan: PlanState, remote: RemoteState?): View {
         val view = inflater.inflate(R.layout.item_plan, parent, false)
         view.findViewById<ImageView>(R.id.plan_dot).setColorFilter(Format.healthColor(this, plan.health))
         view.findViewById<TextView>(R.id.plan_name).text = plan.id
+        view.findViewById<TextView>(R.id.plan_remote).apply {
+            visibility = if (plan.isRemote) View.VISIBLE else View.GONE
+            text = listOfNotNull(
+                "Remote-Instanz ${plan.instance}",
+                remote?.let { Format.connectionLabel(it.state) },
+                remote?.lastHeartbeatMs?.let { "Kontakt ${Format.relative(it)}" },
+            ).joinToString(" · ")
+        }
 
         val last = plan.lastFinished
         view.findViewById<TextView>(R.id.plan_last).text = when {
@@ -166,15 +176,17 @@ class MainActivity : Activity() {
         }
 
         view.findViewById<Button>(R.id.plan_backup).apply {
+            // Backrest offers no API to start a backup on a remote instance.
+            visibility = if (plan.isRemote) View.GONE else View.VISIBLE
             isEnabled = !plan.running
             setOnClickListener { confirmBackup(plan.id) }
         }
         return view
     }
 
-    private fun runningView(inflater: LayoutInflater, parent: LinearLayout, op: RunningOp): View {
+    private fun runningView(inflater: LayoutInflater, parent: LinearLayout, op: RunningOp, remote: Boolean): View {
         val view = inflater.inflate(R.layout.item_running, parent, false)
-        view.findViewById<TextView>(R.id.op_title).text = op.title
+        view.findViewById<TextView>(R.id.op_title).text = if (remote) "${op.title} · ${op.instance}" else op.title
         view.findViewById<TextView>(R.id.op_percent).text = Format.percent(op) ?: ""
         view.findViewById<ProgressBar>(R.id.op_progress).apply {
             isIndeterminate = op.percent == null
@@ -190,7 +202,11 @@ class MainActivity : Activity() {
         }
         view.findViewById<TextView>(R.id.op_since).text =
             "Gestartet ${Format.dateTime(this, op.startMs)} · läuft seit ${Format.duration(System.currentTimeMillis() - op.startMs)}"
-        view.findViewById<Button>(R.id.op_cancel).setOnClickListener { confirmCancel(op) }
+        view.findViewById<Button>(R.id.op_cancel).apply {
+            // Operations of remote instances can only be cancelled there.
+            visibility = if (remote) View.GONE else View.VISIBLE
+            setOnClickListener { confirmCancel(op) }
+        }
         return view
     }
 

@@ -107,21 +107,21 @@ class BackrestWidget : AppWidgetProvider() {
             views.setViewVisibility(R.id.widget_rows, View.VISIBLE)
             val others = snapshot.otherRunning
             for (op in others.take(MAX_ROWS)) {
-                views.addView(R.id.widget_rows, opRow(context, op))
+                views.addView(R.id.widget_rows, opRow(context, snapshot, op))
             }
             for (plan in snapshot.plans.take((MAX_ROWS - others.size).coerceAtLeast(0))) {
-                views.addView(R.id.widget_rows, row(context, plan))
+                views.addView(R.id.widget_rows, row(context, snapshot, plan))
             }
             return views
         }
 
-        private fun row(context: Context, plan: PlanState): RemoteViews {
+        private fun row(context: Context, snapshot: Snapshot, plan: PlanState): RemoteViews {
             val row = RemoteViews(context.packageName, R.layout.widget_row)
             row.setInt(R.id.row_dot, "setColorFilter", Format.healthColor(context, plan.health))
             row.setTextViewText(R.id.row_name, plan.id)
             val active = plan.activeBackup
             if (active != null) {
-                showProgress(context, row, active)
+                showProgress(context, row, active, plan.instance)
                 return row
             }
             val last = plan.lastFinished
@@ -134,23 +134,29 @@ class BackrestWidget : AppWidgetProvider() {
                 }
             )
             val next = plan.nextBackupMs
-            row.setTextViewText(R.id.row_next, if (next != null) "nächstes ${Format.dayAndTime(context, next)}" else "kein Zeitplan")
+            val remote = snapshot.remotes.firstOrNull { it.instance == plan.instance }
+            val detail = when {
+                remote != null && !remote.connected -> "getrennt"
+                next != null -> "nächstes ${Format.dayAndTime(context, next)}"
+                else -> "kein Zeitplan"
+            }
+            row.setTextViewText(R.id.row_next, listOfNotNull(plan.instance, detail).joinToString(" · "))
             return row
         }
 
         /** Row for a running task that has no plan row of its own (prune, check, …). */
-        private fun opRow(context: Context, op: RunningOp): RemoteViews {
+        private fun opRow(context: Context, snapshot: Snapshot, op: RunningOp): RemoteViews {
             val row = RemoteViews(context.packageName, R.layout.widget_row)
             row.setInt(R.id.row_dot, "setColorFilter", Format.healthColor(context, Health.RUNNING))
             row.setTextViewText(R.id.row_name, op.title)
-            showProgress(context, row, op)
+            showProgress(context, row, op, op.instance.takeIf { snapshot.isRemote(op) })
             return row
         }
 
-        private fun showProgress(context: Context, row: RemoteViews, op: RunningOp) {
+        private fun showProgress(context: Context, row: RemoteViews, op: RunningOp, instance: String?) {
             row.setTextViewText(R.id.row_last, Format.percent(op) ?: "läuft …")
             val detail = Format.amounts(op).ifEmpty { "seit ${Format.time(context, op.startMs)}" }
-            row.setTextViewText(R.id.row_next, detail)
+            row.setTextViewText(R.id.row_next, listOfNotNull(instance, detail).joinToString(" · "))
             row.setViewVisibility(R.id.row_progress, View.VISIBLE)
             val percent = op.percent
             row.setProgressBar(R.id.row_progress, 1000, ((percent ?: 0.0) * 1000).toInt(), percent == null)

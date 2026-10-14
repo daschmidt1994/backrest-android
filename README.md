@@ -3,6 +3,7 @@
 Android-App mit Homescreen-Widget für [Backrest](https://github.com/garethgeorge/backrest) (restic-Web-UI).
 
 - **Laufende Backups**: Welcher Plan gerade sichert, mit Fortschritt in %, Datenmenge, Dateien und aktueller Datei. Prüfung, Prune, Hooks usw. werden ebenfalls angezeigt. In der App lassen sie sich abbrechen.
+- **Remote-Instanzen (Multihost)**: Ist dein Backrest ein Multihost-Server, erscheinen die Pläne der verbundenen Clients (z. B. VPS) mit Instanzname, Verbindungsstatus, letztem und nächstem Backup. Starten und abbrechen lassen sie sich nur auf der jeweiligen Instanz.
 - **Widget**: Gesamtstatus (grün/blau/orange/rot), je Plan letztes Backup und nächster Lauf, Aktualisieren-Button, Offline-Anzeige mit letztem Stand. Größe frei veränderbar; flach gezogen zeigt es nur die Statuszeile. Material You ab Android 12, Dark Mode.
 - **App**: Pläne mit letztem Backup, Dauer, nächstem Lauf, 30-Tage-Statistik und Verlaufsbalken; Repositories mit gesicherter Größe; „Backup starten“ je Plan; Link zur Weboberfläche.
 - **Benachrichtigung**, wenn ein Backup fehlschlägt (abschaltbar).

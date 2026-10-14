@@ -91,6 +91,16 @@ object Format {
         }
     }
 
+    fun connectionLabel(state: String): String = when (state) {
+        "connected" -> "verbunden"
+        "disconnected" -> "getrennt"
+        "retry_wait" -> "wartet auf Verbindung"
+        "pending" -> "verbindet …"
+        "error_auth" -> "Anmeldefehler"
+        "error_protocol", "error_internal" -> "Verbindungsfehler"
+        else -> "Status unbekannt"
+    }
+
     fun percent(op: RunningOp): String? = op.percent?.let { "${(it * 100).toInt()} %" }
 
     /** "656 MiB / 804 MiB · 200/201 Dateien", parts omitted when unknown. */
