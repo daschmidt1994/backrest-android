@@ -99,6 +99,42 @@ data class RunningOp(
     }
 }
 
+/** A failed operation other than a backup, e.g. prune, check, forget or a hook. */
+data class FailedTask(
+    val id: Long,
+    val kind: OpKind,
+    /** Plan ID, null for repository tasks under Backrest's "_system_" pseudo plan. */
+    val planId: String?,
+    val repoId: String,
+    val instance: String,
+    val startMs: Long,
+    /** Backrest's display message of the operation, usually the error text. */
+    val message: String?,
+) {
+    val title: String get() = if (planId != null) "${kind.label} · $planId" else "${kind.label} · Repo $repoId"
+
+    companion object {
+        fun from(op: JSONObject): FailedTask? {
+            if (OpStatus.parse(op.opt("status")) != OpStatus.ERROR) return null
+            val kind = OpKind.of(op)
+            if (kind == OpKind.BACKUP) return null // reported per plan
+            return FailedTask(
+                id = op.longOrNull("id") ?: return null,
+                kind = kind,
+                planId = op.optString("planId").takeUnless { it.isEmpty() || it.startsWith("_") },
+                repoId = op.optString("repoId"),
+                instance = op.optString("instanceId"),
+                startMs = op.longOrNull("unixTimeStartMs") ?: 0,
+                message = op.optString("displayMessage").trim().ifEmpty { null },
+            )
+        }
+
+        fun fromOperations(vararg lists: JSONObject?): List<FailedTask> =
+            lists.flatMap { it?.optJSONArray("operations").objects() }
+                .mapNotNull { from(it) }.distinctBy { it.id }.sortedBy { it.id }
+    }
+}
+
 data class PlanState(
     val id: String,
     val recent: List<BackupEntry>,
@@ -113,6 +149,9 @@ data class PlanState(
     val instance: String? = null,
 ) {
     val isRemote: Boolean get() = instance != null
+
+    /** Unique across instances; local plans keep their bare ID (compatible with stored state). */
+    val key: String get() = if (instance != null) "$instance/$id" else id
 
     /** Newest backup that has finished. */
     val lastFinished: BackupEntry? get() = recent.lastOrNull { it.status.finished }

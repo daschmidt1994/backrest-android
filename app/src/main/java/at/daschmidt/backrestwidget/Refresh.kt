@@ -1,13 +1,6 @@
 package at.daschmidt.backrestwidget
 
-import android.Manifest
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -27,13 +20,12 @@ object Refresher {
     private const val ONE_SHOT = "refresh_now"
     private const val WHILE_RUNNING = "refresh_running"
     private const val RUNNING_INTERVAL_S = 60L
-    private const val CHANNEL = "failures"
-    private const val NOTIFY_MAX_AGE_MS = 24 * 3600_000L
 
-    /** Fetch the dashboard, cache it, notify about new failures and redraw widgets. Blocking. */
+    /** Fetch the dashboard, cache it, notify about new problems and redraw widgets. Blocking. */
     fun refresh(context: Context): Result<Snapshot> {
         val settings = Settings(context)
         val now = System.currentTimeMillis()
+        var tasks = emptyList<FailedTask>()
         val result = runCatching {
             val client = BackrestClient(settings)
             val dashboard = client.summaryDashboard()
@@ -46,6 +38,7 @@ object Refresher {
                 .mapNotNull { (instance, planId) ->
                     runCatching { "$instance/$planId" to client.planOperations(instance, planId) }.getOrNull()
                 }.toMap()
+            tasks = FailedTask.fromOperations(operations, *remoteOperations.values.toTypedArray())
             Snapshot.fromDashboard(dashboard, now, operations, remotes, remoteOperations)
         }.recoverCatching { e ->
             throw if (e is SocketTimeoutException) BackrestException("Zeitüberschreitung") else e
@@ -54,10 +47,12 @@ object Refresher {
         result.onSuccess {
             settings.snapshot = it
             settings.lastError = null
-            notifyFailures(context, settings, it)
+            Notifier.afterSuccess(context, settings, it, tasks)
             if (it.running.isNotEmpty()) followUpWhileRunning(context)
         }.onFailure {
-            settings.lastError = it.message ?: it.javaClass.simpleName
+            val message = it.message ?: it.javaClass.simpleName
+            settings.lastError = message
+            Notifier.afterFailure(context, settings, message)
         }
         BackrestWidget.updateAll(context)
         return result
@@ -89,39 +84,6 @@ object Refresher {
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(WHILE_RUNNING, ExistingWorkPolicy.REPLACE, request)
-    }
-
-    fun createChannel(context: Context) {
-        val channel = NotificationChannel(
-            CHANNEL, context.getString(R.string.channel_failures), NotificationManager.IMPORTANCE_DEFAULT
-        )
-        context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
-    }
-
-    private fun notifyFailures(context: Context, settings: Settings, snapshot: Snapshot) {
-        if (!settings.notifyOnFailure) return
-        if (Build.VERSION.SDK_INT >= 33 &&
-            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) return
-        val nm = context.getSystemService(NotificationManager::class.java)
-        val open = PendingIntent.getActivity(
-            context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
-        )
-        for (plan in snapshot.plans) {
-            val last = plan.lastFinished ?: continue
-            if (last.status != OpStatus.ERROR) continue
-            if (last.startMs <= settings.notifiedFailure(plan.id)) continue
-            settings.setNotifiedFailure(plan.id, last.startMs)
-            if (System.currentTimeMillis() - last.startMs > NOTIFY_MAX_AGE_MS) continue
-            val notification = android.app.Notification.Builder(context, CHANNEL)
-                .setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle(context.getString(R.string.notify_failed_title, plan.id))
-                .setContentText(context.getString(R.string.notify_failed_text, Format.dateTime(context, last.startMs)))
-                .setContentIntent(open)
-                .setAutoCancel(true)
-                .build()
-            nm.notify(plan.id.hashCode(), notification)
-        }
     }
 }
 

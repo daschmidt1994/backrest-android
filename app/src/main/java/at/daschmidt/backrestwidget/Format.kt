@@ -1,6 +1,7 @@
 package at.daschmidt.backrestwidget
 
 import android.content.Context
+import android.os.Build
 import android.text.format.DateFormat
 import android.text.format.DateUtils
 import java.util.Calendar
@@ -99,6 +100,13 @@ object Format {
         "error_auth" -> "Anmeldefehler"
         "error_protocol", "error_internal" -> "Verbindungsfehler"
         else -> "Status unbekannt"
+    }
+
+    /** "Version 0.4.0 (5)" from the installed package. */
+    fun appVersion(context: Context): String {
+        val info = context.packageManager.getPackageInfo(context.packageName, 0)
+        val code = if (Build.VERSION.SDK_INT >= 28) info.longVersionCode.toInt() else @Suppress("DEPRECATION") info.versionCode
+        return context.getString(R.string.version, info.versionName ?: "?", code)
     }
 
     fun percent(op: RunningOp): String? = op.percent?.let { "${(it * 100).toInt()} %" }

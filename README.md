@@ -6,7 +6,12 @@ Android-App mit Homescreen-Widget für [Backrest](https://github.com/garethgeorg
 - **Remote-Instanzen (Multihost)**: Ist dein Backrest ein Multihost-Server, erscheinen die Pläne der verbundenen Clients (z. B. VPS) mit Instanzname, Verbindungsstatus, letztem und nächstem Backup. Starten und abbrechen lassen sie sich nur auf der jeweiligen Instanz.
 - **Widget**: Gesamtstatus (grün/blau/orange/rot), je Plan letztes Backup und nächster Lauf, Aktualisieren-Button, Offline-Anzeige mit letztem Stand. Größe frei veränderbar; flach gezogen zeigt es nur die Statuszeile. Material You ab Android 12, Dark Mode.
 - **App**: Pläne mit letztem Backup, Dauer, nächstem Lauf, 30-Tage-Statistik und Verlaufsbalken; Repositories mit gesicherter Größe; „Backup starten“ je Plan; Link zur Weboberfläche.
-- **Benachrichtigung**, wenn ein Backup fehlschlägt (abschaltbar).
+- **Benachrichtigungen**, einzeln schaltbar und je mit eigenem Android-Kanal:
+  fehlgeschlagenes Backup, Backup mit Warnung (standardmäßig aus), andere fehlgeschlagene
+  Aufgabe (Prune, Prüfung, Forget, Hook …), fehlgeschlagener Abruf (Server nicht erreichbar,
+  Anmeldung … – erst nach einstellbar vielen Fehlversuchen hintereinander, einmal pro Störung)
+  und getrennte Remote-Instanz (ab 15 min ohne Lebenszeichen). Mit Testbenachrichtigung.
+- **App-Version** unten auf der Hauptseite und in den Einstellungen.
 - Aktualisierung im Hintergrund per WorkManager (Standard 30 min, minimal 15 min). Solange etwas läuft, aktualisiert sich das Widget jede Minute, die geöffnete App alle 3 s.
 
 Lizenz: MIT. Benötigt Android 8.0+ und Backrest ≥ 1.6 (getestet mit 1.14.1).

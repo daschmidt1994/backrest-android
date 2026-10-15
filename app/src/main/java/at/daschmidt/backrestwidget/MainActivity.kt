@@ -37,11 +37,12 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.action_settings).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
+        findViewById<TextView>(R.id.version).text = Format.appVersion(this)
         findViewById<View>(R.id.action_web).setOnClickListener {
             runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(settings.serverUrl))) }
         }
 
-        if (Build.VERSION.SDK_INT >= 33 && settings.notifyOnFailure &&
+        if (Build.VERSION.SDK_INT >= 33 && settings.anyAlertEnabled &&
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)

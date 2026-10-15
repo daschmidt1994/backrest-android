@@ -38,9 +38,37 @@ class Settings(context: Context) {
         get() = prefs.getInt(KEY_INTERVAL, 30)
         set(value) = prefs.edit().putInt(KEY_INTERVAL, value.coerceAtLeast(15)).apply()
 
-    var notifyOnFailure: Boolean
-        get() = prefs.getBoolean(KEY_NOTIFY, true)
-        set(value) = prefs.edit().putBoolean(KEY_NOTIFY, value).apply()
+    /** Whether [alert] raises a notification. Backup failures keep the key of the former single switch. */
+    fun alertEnabled(alert: Alert): Boolean = prefs.getBoolean(alertKey(alert), alert.defaultOn)
+    fun setAlertEnabled(alert: Alert, enabled: Boolean) = prefs.edit().putBoolean(alertKey(alert), enabled).apply()
+    private fun alertKey(alert: Alert) = if (alert == Alert.BACKUP_FAILED) KEY_NOTIFY else "$KEY_NOTIFY_PREFIX${alert.name}"
+
+    val anyAlertEnabled: Boolean get() = Alert.entries.any { alertEnabled(it) }
+
+    /** Failed refreshes in a row before "server unreachable" is notified. */
+    var unreachableThreshold: Int
+        get() = prefs.getInt(KEY_UNREACHABLE_THRESHOLD, 3)
+        set(value) = prefs.edit().putInt(KEY_UNREACHABLE_THRESHOLD, value.coerceIn(1, 50)).apply()
+
+    /** Failed refreshes since the last successful one. */
+    var failedRefreshes: Int
+        get() = prefs.getInt(KEY_FAILED_REFRESHES, 0)
+        set(value) = prefs.edit().putInt(KEY_FAILED_REFRESHES, value).apply()
+
+    /** Whether the current run of failed refreshes was already notified. */
+    var unreachableNotified: Boolean
+        get() = prefs.getBoolean(KEY_UNREACHABLE_NOTIFIED, false)
+        set(value) = prefs.edit().putBoolean(KEY_UNREACHABLE_NOTIFIED, value).apply()
+
+    /** Highest operation ID of a failed task that was already handled. */
+    var notifiedTaskId: Long
+        get() = prefs.getLong(KEY_NOTIFIED_TASK, 0)
+        set(value) = prefs.edit().putLong(KEY_NOTIFIED_TASK, value).apply()
+
+    /** Remote instances whose disconnect was already notified. */
+    var notifiedRemotes: Set<String>
+        get() = prefs.getStringSet(KEY_NOTIFIED_REMOTES, null)?.toSet() ?: emptySet()
+        set(value) = prefs.edit().putStringSet(KEY_NOTIFIED_REMOTES, value).apply()
 
     val configured: Boolean get() = serverUrl.isNotEmpty()
 
@@ -57,9 +85,14 @@ class Settings(context: Context) {
         get() = prefs.getLong(KEY_ATTEMPT, 0)
         set(value) = prefs.edit().putLong(KEY_ATTEMPT, value).apply()
 
-    /** Newest failed backup start per plan that was already notified, to avoid repeats. */
-    fun notifiedFailure(planId: String): Long = prefs.getLong("$KEY_NOTIFIED$planId", 0)
-    fun setNotifiedFailure(planId: String, startMs: Long) = prefs.edit().putLong("$KEY_NOTIFIED$planId", startMs).apply()
+    /** Newest failed backup start per plan (see [PlanState.key]) that was already notified, to avoid repeats. */
+    fun notifiedFailure(planKey: String): Long = prefs.getLong("$KEY_NOTIFIED$planKey", 0)
+    fun setNotifiedFailure(planKey: String, startMs: Long) = prefs.edit().putLong("$KEY_NOTIFIED$planKey", startMs).apply()
+
+    /** Same for backups that finished with a warning. */
+    fun notifiedWarning(planKey: String): Long = prefs.getLong("$KEY_NOTIFIED_WARNING$planKey", 0)
+    fun setNotifiedWarning(planKey: String, startMs: Long) =
+        prefs.edit().putLong("$KEY_NOTIFIED_WARNING$planKey", startMs).apply()
 
     private fun key(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
@@ -95,6 +128,13 @@ class Settings(context: Context) {
         const val KEY_TOKEN = "token"
         const val KEY_INTERVAL = "interval"
         const val KEY_NOTIFY = "notify"
+        const val KEY_NOTIFY_PREFIX = "notify_"
+        const val KEY_UNREACHABLE_THRESHOLD = "unreachable_threshold"
+        const val KEY_FAILED_REFRESHES = "failed_refreshes"
+        const val KEY_UNREACHABLE_NOTIFIED = "unreachable_notified"
+        const val KEY_NOTIFIED_TASK = "notified_task_id"
+        const val KEY_NOTIFIED_REMOTES = "notified_remotes"
+        const val KEY_NOTIFIED_WARNING = "notified_warning_"
         const val KEY_SNAPSHOT = "snapshot"
         const val KEY_ERROR = "error"
         const val KEY_ATTEMPT = "attempt"

@@ -46,14 +46,47 @@
             style="@style/Field"
             android:inputType="number" />
 
-        <Switch
-            android:id="@+id/input_notify"
+        <TextView
+            style="@style/FieldLabel"
+            android:layout_marginTop="16dp"
+            android:text="@string/notifications" />
+
+        <!-- One switch per Alert, added in SettingsActivity -->
+        <LinearLayout
+            android:id="@+id/alerts"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/notify"
-            android:textColor="@color/text_primary"
-            android:textSize="15sp" />
+            android:orientation="vertical" />
+
+        <TextView style="@style/FieldLabel" android:text="@string/unreachable_threshold" />
+        <EditText
+            android:id="@+id/input_unreachable_threshold"
+            style="@style/Field"
+            android:inputType="number" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/notify_test"
+                android:textAllCaps="false"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/notify_test" />
+
+            <Button
+                android:id="@+id/notify_system"
+                android:textAllCaps="false"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/notify_system_settings" />
+        </LinearLayout>
 
         <Button
             android:id="@+id/save"
@@ -67,5 +100,11 @@
             style="@style/Secondary"
             android:layout_marginTop="12dp"
             android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/version"
+            style="@style/Secondary"
+            android:layout_marginTop="24dp"
+            android:gravity="center" />
     </LinearLayout>
 </ScrollView>
