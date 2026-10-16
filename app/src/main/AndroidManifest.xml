@@ -28,6 +28,10 @@
             android:label="@string/settings"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity android:name=".HistoryActivity" android:exported="false" />
+        <activity android:name=".SnapshotsActivity" android:exported="false" />
+        <activity android:name=".FilesActivity" android:exported="false" />
+
         <receiver
             android:name=".BackrestWidget"
             android:exported="false"

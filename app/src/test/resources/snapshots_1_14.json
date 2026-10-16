@@ -1,0 +1,55 @@
+{
+    "snapshots": [
+        {
+            "id": "8e9e833f5c20e350dad3dad8b18b058921b45609eb57bca8588202efee3c2e29",
+            "unixTimeMs": "1792127420472",
+            "hostname": "claude",
+            "username": "root",
+            "tree": "1fed4cf605c7eeade9d639ac562867986259297e93ff41a0c7f62888610844e1",
+            "paths": [
+                "/srv/daten/docs"
+            ],
+            "tags": [
+                "plan:docs",
+                "created-by:android-test"
+            ],
+            "summary": {
+                "filesNew": "5",
+                "dirsNew": "9",
+                "dataBlobs": "5",
+                "treeBlobs": "10",
+                "dataAdded": "305141",
+                "totalFilesProcessed": "5",
+                "totalBytesProcessed": "300030",
+                "totalDuration": 0.689
+            }
+        },
+        {
+            "id": "aaeb5ef154cfdef52117058e9b90b0f3f558032094c4f05953a70decc75299cc",
+            "unixTimeMs": "1792127422513",
+            "hostname": "claude",
+            "username": "root",
+            "tree": "cca1cfc77d8f6e739314354bd2ac131b6a9dbcc2b915a890edeaed1e0d9dee88",
+            "parent": "8e9e833f5c20e350dad3dad8b18b058921b45609eb57bca8588202efee3c2e29",
+            "paths": [
+                "/srv/daten/docs"
+            ],
+            "tags": [
+                "plan:docs",
+                "created-by:android-test"
+            ],
+            "summary": {
+                "filesNew": "1",
+                "filesUnmodified": "5",
+                "dirsChanged": "8",
+                "dirsUnmodified": "1",
+                "dataBlobs": "1",
+                "treeBlobs": "9",
+                "dataAdded": "5104",
+                "totalFilesProcessed": "6",
+                "totalBytesProcessed": "300036",
+                "totalDuration": 0.668
+            }
+        }
+    ]
+}

@@ -1,0 +1,160 @@
+{
+    "operations": [
+        {
+            "id": "1",
+            "modno": "4",
+            "flowId": "1",
+            "repoId": "local",
+            "repoGuid": "906a3cbf7c313087a6d33cf8010e20989ed134d7170d178a20d52c41cf1c0927",
+            "planId": "docs",
+            "instanceId": "android-test",
+            "snapshotId": "8e9e833f5c20e350dad3dad8b18b058921b45609eb57bca8588202efee3c2e29",
+            "status": "STATUS_SUCCESS",
+            "unixTimeStartMs": "1792127419773",
+            "unixTimeEndMs": "1792127421164",
+            "logref": "t-7c359e00-4050-4ab7-9a99-627eb64221de",
+            "operationBackup": {
+                "lastStatus": {
+                    "summary": {
+                        "filesNew": "5",
+                        "dirsNew": "9",
+                        "dataBlobs": "5",
+                        "treeBlobs": "10",
+                        "dataAdded": "305141",
+                        "totalFilesProcessed": "5",
+                        "totalBytesProcessed": "300030",
+                        "totalDuration": 0.689343538,
+                        "snapshotId": "8e9e833f5c20e350dad3dad8b18b058921b45609eb57bca8588202efee3c2e29"
+                    }
+                }
+            }
+        },
+        {
+            "id": "2",
+            "modno": "9",
+            "flowId": "2",
+            "repoId": "local",
+            "repoGuid": "906a3cbf7c313087a6d33cf8010e20989ed134d7170d178a20d52c41cf1c0927",
+            "planId": "docs",
+            "instanceId": "android-test",
+            "snapshotId": "aaeb5ef154cfdef52117058e9b90b0f3f558032094c4f05953a70decc75299cc",
+            "status": "STATUS_SUCCESS",
+            "unixTimeStartMs": "1792127421844",
+            "unixTimeEndMs": "1792127423185",
+            "logref": "t-4c9decc1-0c3c-4862-929a-503afe7c8c11",
+            "operationBackup": {
+                "lastStatus": {
+                    "summary": {
+                        "filesNew": "1",
+                        "filesUnmodified": "5",
+                        "dirsChanged": "8",
+                        "dirsUnmodified": "1",
+                        "dataBlobs": "1",
+                        "treeBlobs": "9",
+                        "dataAdded": "5104",
+                        "totalFilesProcessed": "6",
+                        "totalBytesProcessed": "300036",
+                        "totalDuration": 0.668911413,
+                        "snapshotId": "aaeb5ef154cfdef52117058e9b90b0f3f558032094c4f05953a70decc75299cc"
+                    }
+                }
+            }
+        },
+        {
+            "id": "3",
+            "modno": "6",
+            "flowId": "1",
+            "repoId": "local",
+            "repoGuid": "906a3cbf7c313087a6d33cf8010e20989ed134d7170d178a20d52c41cf1c0927",
+            "planId": "docs",
+            "instanceId": "android-test",
+            "snapshotId": "8e9e833f5c20e350dad3dad8b18b058921b45609eb57bca8588202efee3c2e29",
+            "status": "STATUS_SUCCESS",
+            "unixTimeStartMs": "1792127420472",
+            "unixTimeEndMs": "1792127421161",
+            "operationIndexSnapshot": {
+                "snapshot": {
+                    "id": "8e9e833f5c20e350dad3dad8b18b058921b45609eb57bca8588202efee3c2e29",
+                    "unixTimeMs": "1792127420472",
+                    "hostname": "claude",
+                    "username": "root",
+                    "tree": "1fed4cf605c7eeade9d639ac562867986259297e93ff41a0c7f62888610844e1",
+                    "paths": [
+                        "/srv/daten/docs"
+                    ],
+                    "tags": [
+                        "plan:docs",
+                        "created-by:android-test"
+                    ],
+                    "summary": {
+                        "filesNew": "5",
+                        "dirsNew": "9",
+                        "dataBlobs": "5",
+                        "treeBlobs": "10",
+                        "dataAdded": "305141",
+                        "totalFilesProcessed": "5",
+                        "totalBytesProcessed": "300030",
+                        "totalDuration": 0.689
+                    }
+                }
+            }
+        },
+        {
+            "id": "4",
+            "modno": "13",
+            "flowId": "4",
+            "repoId": "local",
+            "repoGuid": "906a3cbf7c313087a6d33cf8010e20989ed134d7170d178a20d52c41cf1c0927",
+            "planId": "kaputt",
+            "instanceId": "android-test",
+            "status": "STATUS_ERROR",
+            "unixTimeStartMs": "1792127423909",
+            "unixTimeEndMs": "1792127424662",
+            "displayMessage": "failed to backup: path /gibt/es/nicht does not exist: stat /gibt/es/nicht: no such file or directory",
+            "logref": "t-74348399-8f4a-46a8-b3ef-5e2f36463785",
+            "operationBackup": {}
+        },
+        {
+            "id": "5",
+            "modno": "11",
+            "flowId": "2",
+            "repoId": "local",
+            "repoGuid": "906a3cbf7c313087a6d33cf8010e20989ed134d7170d178a20d52c41cf1c0927",
+            "planId": "docs",
+            "instanceId": "android-test",
+            "snapshotId": "aaeb5ef154cfdef52117058e9b90b0f3f558032094c4f05953a70decc75299cc",
+            "status": "STATUS_SUCCESS",
+            "unixTimeStartMs": "1792127422513",
+            "unixTimeEndMs": "1792127423181",
+            "operationIndexSnapshot": {
+                "snapshot": {
+                    "id": "aaeb5ef154cfdef52117058e9b90b0f3f558032094c4f05953a70decc75299cc",
+                    "unixTimeMs": "1792127422513",
+                    "hostname": "claude",
+                    "username": "root",
+                    "tree": "cca1cfc77d8f6e739314354bd2ac131b6a9dbcc2b915a890edeaed1e0d9dee88",
+                    "parent": "8e9e833f5c20e350dad3dad8b18b058921b45609eb57bca8588202efee3c2e29",
+                    "paths": [
+                        "/srv/daten/docs"
+                    ],
+                    "tags": [
+                        "plan:docs",
+                        "created-by:android-test"
+                    ],
+                    "summary": {
+                        "filesNew": "1",
+                        "filesUnmodified": "5",
+                        "dirsChanged": "8",
+                        "dirsUnmodified": "1",
+                        "dataBlobs": "1",
+                        "treeBlobs": "9",
+                        "dataAdded": "5104",
+                        "totalFilesProcessed": "6",
+                        "totalBytesProcessed": "300036",
+                        "totalDuration": 0.668
+                    }
+                }
+            }
+        }
+    ]
+}

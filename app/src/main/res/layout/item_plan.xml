@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     style="@style/Card"
+    android:foreground="?android:attr/selectableItemBackground"
     android:orientation="vertical">
 
     <LinearLayout
@@ -44,11 +45,24 @@
         android:layout_marginTop="10dp"
         android:orientation="horizontal" />
 
-    <Button
-        android:id="@+id/plan_backup"
-        style="@android:style/Widget.Material.Button.Borderless.Colored"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end"
-        android:text="@string/start_backup" />
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/plan_open_history"
+            style="@android:style/Widget.Material.Button.Borderless.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/history" />
+
+        <Button
+            android:id="@+id/plan_backup"
+            style="@android:style/Widget.Material.Button.Borderless.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/start_backup" />
+    </LinearLayout>
 </LinearLayout>

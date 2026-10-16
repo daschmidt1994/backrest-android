@@ -14,14 +14,17 @@ object Format {
 
     fun time(context: Context, timeMs: Long): String = DateFormat.getTimeFormat(context).format(timeMs)
 
-    /** "heute 02:00", "morgen 02:00" or "Mo., 14.10. 02:00". */
+    /** "heute 02:00", "morgen 02:00", "Mo., 14.10. 02:00" or, in another year, "Mo., 14.10.2025 02:00". */
     fun dayAndTime(context: Context, timeMs: Long, nowMs: Long = System.currentTimeMillis()): String {
         val days = dayIndex(timeMs) - dayIndex(nowMs)
         val day = when (days) {
             0L -> "heute"
             1L -> "morgen"
             -1L -> "gestern"
-            else -> DateFormat.format(DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEdM"), timeMs).toString()
+            else -> {
+                val skeleton = if (dayIndex(timeMs) / 400 == dayIndex(nowMs) / 400) "EEEdM" else "EEEdMy"
+                DateFormat.format(DateFormat.getBestDateTimePattern(Locale.getDefault(), skeleton), timeMs).toString()
+            }
         }
         return "$day ${time(context, timeMs)}"
     }
@@ -116,6 +119,11 @@ object Format {
         if (op.totalBytes > 0) "${bytes(op.bytesDone)} / ${bytes(op.totalBytes)}" else null,
         if (op.totalFiles > 0) "${op.filesDone}/${op.totalFiles} Dateien" else null,
     ).joinToString(" · ")
+
+    /** First 8 characters of a snapshot ID, as restic shows them. */
+    fun shortId(id: String): String = id.take(8)
+
+    fun firstLine(text: String): String = text.lineSequence().first().let { if (it.length > 200) it.take(200) + " …" else it }
 
     fun fileName(path: String): String = path.trimEnd('/').substringAfterLast('/').ifEmpty { path }
 

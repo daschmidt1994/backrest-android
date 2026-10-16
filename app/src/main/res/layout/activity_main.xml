@@ -29,6 +29,12 @@
             android:src="@drawable/ic_refresh" />
 
         <ImageButton
+            android:id="@+id/action_history"
+            style="@style/ToolbarButton"
+            android:contentDescription="@string/history"
+            android:src="@drawable/ic_history" />
+
+        <ImageButton
             android:id="@+id/action_web"
             style="@style/ToolbarButton"
             android:contentDescription="@string/open_web"

@@ -143,6 +143,48 @@ class BackrestClient(private val settings: Settings) {
     fun recentOperations(lastN: Int = 100): JSONObject =
         call("GetOperations", JSONObject().put("selector", JSONObject()).put("lastN", lastN.toString()))
 
+    /**
+     * The newest [lastN] operations of a plan (all kinds; callers filter the
+     * backups), or of all plans when [planId] is null. [instance] selects a
+     * remote instance's plan.
+     */
+    fun history(planId: String?, instance: String?, lastN: Int): JSONObject {
+        val selector = JSONObject()
+        planId?.let { selector.put("planId", it) }
+        instance?.let { selector.put("instanceId", it) }
+        return call("GetOperations", JSONObject().put("selector", selector).put("lastN", lastN.toString()))
+    }
+
+    /** All snapshots in a repository. Backrest asks restic, which can take a while for remote repos. */
+    fun snapshots(repoId: String): JSONObject =
+        call("ListSnapshots", JSONObject().put("repoId", repoId), readTimeoutMs = RESTIC_TIMEOUT_MS)
+
+    /** Contents of directory [path] in a snapshot. */
+    fun listFiles(repoId: String, snapshotId: String, path: String): JSONObject =
+        call(
+            "ListSnapshotFiles",
+            JSONObject().put("repoId", repoId).put("snapshotId", snapshotId).put("path", path),
+            readTimeoutMs = RESTIC_TIMEOUT_MS,
+        )
+
+    /** Operations belonging to a snapshot, including the index operation needed for downloads. */
+    fun snapshotOperations(snapshotId: String): JSONObject =
+        call("GetOperations", JSONObject().put("selector", JSONObject().put("snapshotId", snapshotId)))
+
+    /**
+     * A signed URL that downloads [path] from the snapshot of index operation
+     * [indexOpId] (a directory arrives as tar). It needs no login, so a browser
+     * can open it.
+     */
+    fun downloadUrl(indexOpId: Long, path: String): String {
+        val relative = call(
+            "GetDownloadURL",
+            JSONObject().put("opId", indexOpId.toString()).put("filePath", path),
+        ).optString("value")
+        if (relative.isEmpty()) throw BackrestException("Server lieferte keinen Download-Link")
+        return "$base/${relative.removePrefix("./").removePrefix("/")}"
+    }
+
     /** Ask Backrest to cancel a running operation. Not guaranteed to succeed immediately. */
     fun cancel(operationId: Long) {
         call("Cancel", JSONObject().put("operationId", operationId.toString()))
@@ -235,6 +277,7 @@ class BackrestClient(private val settings: Settings) {
         const val CONNECT_TIMEOUT_MS = 10_000
         const val READ_TIMEOUT_MS = 20_000
         const val BACKUP_CONFIRM_MS = 10_000
+        const val RESTIC_TIMEOUT_MS = 90_000
         const val END_STREAM = 0x02
         const val PEER_IDLE_MS = 1_500
         const val MAX_FRAME = 32 * 1024 * 1024

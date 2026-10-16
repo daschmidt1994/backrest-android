@@ -438,9 +438,9 @@ private fun Any?.asLong(): Long? = when (this) {
     else -> null
 }
 
-private fun JSONObject.longOrNull(key: String): Long? = opt(key).asLong()
+internal fun JSONObject.longOrNull(key: String): Long? = opt(key).asLong()
 
-private fun JSONArray?.objects(): List<JSONObject> =
+internal fun JSONArray?.objects(): List<JSONObject> =
     if (this == null) emptyList() else (0 until length()).mapNotNull { optJSONObject(it) }
 
 private fun JSONArray?.arrays(): List<JSONArray> =

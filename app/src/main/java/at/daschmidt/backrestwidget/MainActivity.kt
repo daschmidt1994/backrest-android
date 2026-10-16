@@ -37,6 +37,9 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.action_settings).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
+        findViewById<View>(R.id.action_history).setOnClickListener {
+            startActivity(HistoryActivity.intent(this, null, null))
+        }
         findViewById<TextView>(R.id.version).text = Format.appVersion(this)
         findViewById<View>(R.id.action_web).setOnClickListener {
             runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(settings.serverUrl))) }
@@ -131,6 +134,7 @@ class MainActivity : Activity() {
                 repo.protectedBytes?.let { append("${Format.bytes(it)} gesichert · ") }
                 append("+${Format.bytes(repo.bytesAdded30d)} in 30 Tagen")
             }
+            view.setOnClickListener { startActivity(SnapshotsActivity.intent(this, repo.id)) }
             repos.addView(view)
         }
         findViewById<View>(R.id.repos_label).visibility = if (snapshot?.repos.isNullOrEmpty()) View.GONE else View.VISIBLE
@@ -175,6 +179,10 @@ class MainActivity : Activity() {
                 contentDescription = "${Format.dateTime(this@MainActivity, entry.startMs)}: ${Format.statusLabel(entry.status)}"
             })
         }
+
+        val openHistory = View.OnClickListener { startActivity(HistoryActivity.intent(this, plan.id, plan.instance)) }
+        view.setOnClickListener(openHistory)
+        view.findViewById<Button>(R.id.plan_open_history).setOnClickListener(openHistory)
 
         view.findViewById<Button>(R.id.plan_backup).apply {
             // Backrest offers no API to start a backup on a remote instance.
