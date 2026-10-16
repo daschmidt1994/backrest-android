@@ -1,15 +1,19 @@
 package at.daschmidt.backrestwidget
 
 import android.app.AlertDialog
+import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.webkit.MimeTypeMap
 import android.widget.Toast
 
 /**
  * Directories and files inside a snapshot. Starts at the backed-up paths;
- * files (and directories as tar) can be downloaded through the browser.
+ * files (and directories as tar) can be downloaded to the Downloads folder.
  */
 class FilesActivity : BrowseActivity() {
 
@@ -106,7 +110,7 @@ class FilesActivity : BrowseActivity() {
                     "Pfad: ${e.path}",
                 ).joinToString("\n"))
                 .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton("Herunterladen") { _, _ -> download(e.path) }
+                .setPositiveButton("Herunterladen") { _, _ -> download(e.path, e.name) }
                 .show()
         }
     }
@@ -118,13 +122,18 @@ class FilesActivity : BrowseActivity() {
             .setTitle(e.name)
             .setMessage("Ordner als Archiv (.tar) herunterladen?\n\n${e.path}")
             .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton("Herunterladen") { _, _ -> download(e.path) }
+            .setPositiveButton("Herunterladen") { _, _ -> download(e.path, "${e.name}.tar") }
             .show()
         return true
     }
 
-    /** Get a signed download link and hand it to the browser, which saves the file. */
-    private fun download(file: String) {
+    /**
+     * Get a signed download link and let Android's download manager save it
+     * as [name] in Downloads. Browsers would name the file after Backrest's
+     * Content-Disposition, which holds the whole path, and append ".txt" to
+     * text files.
+     */
+    private fun download(file: String, name: String) {
         val repo = repoId
         val snapshot = snapshotId
         val known = indexOpId
@@ -135,12 +144,29 @@ class FilesActivity : BrowseActivity() {
             opId to client.downloadUrl(opId, file)
         }, { (opId, url) ->
             indexOpId = opId
-            runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
-                .onFailure { Toast.makeText(this, "Kein Browser zum Herunterladen gefunden", Toast.LENGTH_LONG).show() }
+            if (Build.VERSION.SDK_INT < 29) {
+                // Saving to the public Downloads folder needs a storage permission before Android 10.
+                runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                    .onFailure { Toast.makeText(this, "Kein Browser zum Herunterladen gefunden", Toast.LENGTH_LONG).show() }
+                return@background
+            }
+            val request = DownloadManager.Request(Uri.parse(url))
+                .setTitle(name)
+                .setDescription("Snapshot ${Format.shortId(snapshot)}")
+                .setMimeType(mimeType(name))
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
+            runCatching { getSystemService(DownloadManager::class.java).enqueue(request) }
+                .onSuccess { Toast.makeText(this, "„$name“ wird in Downloads gespeichert", Toast.LENGTH_SHORT).show() }
+                .onFailure { Toast.makeText(this, "Download fehlgeschlagen: ${it.message}", Toast.LENGTH_LONG).show() }
         }) { message ->
             Toast.makeText(this, "Download fehlgeschlagen: $message", Toast.LENGTH_LONG).show()
         }
     }
+
+    private fun mimeType(name: String): String =
+        MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substringAfterLast('.', "").lowercase())
+            ?: "application/octet-stream"
 
     override val canNavigateBack: Boolean
         get() {
