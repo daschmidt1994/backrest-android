@@ -148,6 +148,34 @@ class RunningOperationsTest {
     }
 
     @Test
+    fun dueOperationsWaitInQueue() {
+        val dashboard = JSONObject("""{"planSummaries":[{"id":"home"},{"id":"photos"},{"id":"idle"}]}""")
+        val ops = JSONObject(
+            """{"operations":[
+              {"id":"10","instanceId":"server","planId":"_system_","repoId":"pics","status":"STATUS_INPROGRESS","unixTimeStartMs":"1500","operationCheck":{}},
+              {"id":"11","instanceId":"server","planId":"photos","repoId":"pics","status":"STATUS_PENDING","unixTimeStartMs":"1800","operationBackup":{}},
+              {"id":"12","instanceId":"server","planId":"home","repoId":"local","status":"STATUS_PENDING","unixTimeStartMs":"1000","operationBackup":{}},
+              {"id":"13","instanceId":"server","planId":"idle","repoId":"local","status":"STATUS_PENDING","unixTimeStartMs":"9000","operationBackup":{}},
+              {"id":"14","instanceId":"vps","planId":"system","repoId":"vps","status":"STATUS_PENDING","unixTimeStartMs":"1200","operationBackup":{}},
+              {"id":"15","instanceId":"server","planId":"_system_","repoId":"local","status":"STATUS_PENDING","unixTimeStartMs":"1000","operationStats":{}}
+            ]}"""
+        )
+        val remote = RemoteState("vps", "connected", null, listOf("system"))
+        val s = Snapshot.fromDashboard(dashboard, 2000, ops, listOf(remote))
+        // future runs and the remote instance's own queue are not waiting here; order by due time
+        assertEquals(listOf(12L, 15L, 11L), s.queued.map { it.id })
+        assertEquals("Statistik · Repo local", s.queued[1].title)
+        val home = s.queuedBackup(s.plans.first { it.id == "home" })!!
+        assertEquals(12L, home.first.id)
+        assertEquals(1, home.second)
+        assertEquals(3, s.queuedBackup(s.plans.first { it.id == "photos" })!!.second)
+        assertNull(s.queuedBackup(s.plans.first { it.id == "idle" }))
+        assertNull(s.queuedBackup(s.plans.first { it.isRemote }))
+        assertEquals("Prüfung läuft · 3 warten", Format.overall(s))
+        assertEquals(s, Snapshot.fromJson(s.toJson()))
+    }
+
+    @Test
     fun withoutOperationsNothingRuns() {
         val s = Snapshot.fromDashboard(JSONObject("""{"planSummaries":[{"id":"a"}]}"""), 0, null)
         assertTrue(s.running.isEmpty())

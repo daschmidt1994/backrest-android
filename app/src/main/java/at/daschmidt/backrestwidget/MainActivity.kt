@@ -85,7 +85,7 @@ class MainActivity : Activity() {
                     // Keep polling while in front; closely while something runs.
                     handler.removeCallbacks(poll)
                     if (resumed) {
-                        val busy = settings.snapshot?.running?.isNotEmpty() == true
+                        val busy = settings.snapshot?.let { it.running.isNotEmpty() || it.queued.isNotEmpty() } == true
                         handler.postDelayed(poll, if (busy) POLL_RUNNING_MS else POLL_IDLE_MS)
                     }
                 }
@@ -118,10 +118,18 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.running_label).visibility =
             if (snapshot?.running.isNullOrEmpty()) View.GONE else View.VISIBLE
 
+        val queue = findViewById<LinearLayout>(R.id.queued)
+        queue.removeAllViews()
+        snapshot?.queued?.forEachIndexed { index, op -> queue.addView(queuedView(inflater, queue, op, index + 1)) }
+        findViewById<View>(R.id.queued_label).visibility =
+            if (snapshot?.queued.isNullOrEmpty()) View.GONE else View.VISIBLE
+
         val plans = findViewById<LinearLayout>(R.id.plans)
         plans.removeAllViews()
         snapshot?.plans?.forEach { plan ->
-            plans.addView(planView(inflater, plans, plan, snapshot.remotes.firstOrNull { it.instance == plan.instance }))
+            plans.addView(
+                planView(inflater, plans, plan, snapshot.remotes.firstOrNull { it.instance == plan.instance }, snapshot.queuedBackup(plan))
+            )
         }
         findViewById<View>(R.id.plans_label).visibility = if (snapshot?.plans.isNullOrEmpty()) View.GONE else View.VISIBLE
 
@@ -140,7 +148,13 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.repos_label).visibility = if (snapshot?.repos.isNullOrEmpty()) View.GONE else View.VISIBLE
     }
 
-    private fun planView(inflater: LayoutInflater, parent: LinearLayout, plan: PlanState, remote: RemoteState?): View {
+    private fun planView(
+        inflater: LayoutInflater,
+        parent: LinearLayout,
+        plan: PlanState,
+        remote: RemoteState?,
+        queuedBackup: Pair<QueuedOp, Int>?,
+    ): View {
         val view = inflater.inflate(R.layout.item_plan, parent, false)
         view.findViewById<ImageView>(R.id.plan_dot).setColorFilter(Format.healthColor(this, plan.health))
         view.findViewById<TextView>(R.id.plan_name).text = plan.id
@@ -162,6 +176,7 @@ class MainActivity : Activity() {
             plan.activeBackup != null ->
                 listOfNotNull("Backup läuft gerade", Format.percent(plan.activeBackup)).joinToString(" · ")
             plan.running -> "Backup läuft gerade"
+            queuedBackup != null -> "Backup ${Format.waiting(this, queuedBackup.first, queuedBackup.second)} in der Warteschlange"
             plan.nextBackupMs != null -> "Nächstes Backup: ${Format.dateTime(this, plan.nextBackupMs)}"
             else -> "Kein Zeitplan"
         }
@@ -187,7 +202,7 @@ class MainActivity : Activity() {
         view.findViewById<Button>(R.id.plan_backup).apply {
             // Backrest offers no API to start a backup on a remote instance.
             visibility = if (plan.isRemote) View.GONE else View.VISIBLE
-            isEnabled = !plan.running
+            isEnabled = !plan.running && queuedBackup == null
             setOnClickListener { confirmBackup(plan.id) }
         }
         return view
@@ -216,6 +231,15 @@ class MainActivity : Activity() {
             visibility = if (remote) View.GONE else View.VISIBLE
             setOnClickListener { confirmCancel(op) }
         }
+        return view
+    }
+
+    private fun queuedView(inflater: LayoutInflater, parent: LinearLayout, op: QueuedOp, position: Int): View {
+        val view = inflater.inflate(R.layout.item_queued, parent, false)
+        view.findViewById<TextView>(R.id.queued_title).text = op.title
+        view.findViewById<TextView>(R.id.queued_position).text = "#$position"
+        view.findViewById<TextView>(R.id.queued_info).text =
+            "Fällig ${Format.dateTime(this, op.dueMs)} · wartet seit ${Format.duration(System.currentTimeMillis() - op.dueMs)}"
         return view
     }
 

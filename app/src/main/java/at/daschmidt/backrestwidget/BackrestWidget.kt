@@ -124,6 +124,12 @@ class BackrestWidget : AppWidgetProvider() {
                 showProgress(context, row, active, plan.instance)
                 return row
             }
+            val waiting = snapshot.queuedBackup(plan)
+            if (waiting != null && !plan.running) {
+                row.setTextViewText(R.id.row_last, "wartet")
+                row.setTextViewText(R.id.row_next, Format.waiting(context, waiting.first, waiting.second))
+                return row
+            }
             val last = plan.lastFinished
             row.setTextViewText(
                 R.id.row_last,
