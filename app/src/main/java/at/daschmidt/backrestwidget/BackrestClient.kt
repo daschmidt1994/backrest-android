@@ -140,7 +140,7 @@ class BackrestClient(private val settings: Settings) {
     }
 
     /** The newest [lastN] operations of all plans and repositories (empty selector). */
-    fun recentOperations(lastN: Int = 100): JSONObject =
+    fun recentOperations(lastN: Int = 200): JSONObject =
         call("GetOperations", JSONObject().put("selector", JSONObject()).put("lastN", lastN.toString()))
 
     /**

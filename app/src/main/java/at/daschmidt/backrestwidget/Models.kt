@@ -99,6 +99,49 @@ data class RunningOp(
     }
 }
 
+/**
+ * An operation that is due but still waits in Backrest's task queue. Backrest
+ * runs one task at a time, so e.g. a long repository check delays every backup
+ * scheduled meanwhile. Future runs (start time not reached yet) are not queued.
+ */
+data class QueuedOp(
+    val id: Long,
+    val kind: OpKind,
+    /** Plan ID, null for repository tasks under Backrest's "_system_" pseudo plan. */
+    val planId: String?,
+    val repoId: String,
+    /** Scheduled start time: the operation has been waiting since then. */
+    val dueMs: Long,
+    val instance: String = "",
+) {
+    val title: String get() = if (planId != null) "${kind.label} · $planId" else "${kind.label} · Repo $repoId"
+
+    companion object {
+        fun from(op: JSONObject, nowMs: Long): QueuedOp? {
+            if (OpStatus.parse(op.opt("status")) != OpStatus.PENDING) return null
+            val kind = OpKind.of(op)
+            if (kind == OpKind.INDEX) return null
+            val due = op.longOrNull("unixTimeStartMs") ?: return null
+            if (due > nowMs) return null
+            return QueuedOp(
+                id = op.longOrNull("id") ?: return null,
+                kind = kind,
+                planId = op.optString("planId").takeUnless { it.isEmpty() || it.startsWith("_") },
+                repoId = op.optString("repoId"),
+                dueMs = due,
+                instance = op.optString("instanceId"),
+            )
+        }
+
+        /** Due operations of this server (remote instances run their own queue), in expected run order. */
+        fun fromOperations(list: JSONObject?, nowMs: Long, remoteInstances: Set<String>): List<QueuedOp> =
+            list?.optJSONArray("operations").objects().mapNotNull { from(it, nowMs) }
+                .filter { it.instance !in remoteInstances }
+                .distinctBy { it.id }
+                .sortedWith(compareBy({ it.dueMs }, { it.id }))
+    }
+}
+
 /** A failed operation other than a backup, e.g. prune, check, forget or a hook. */
 data class FailedTask(
     val id: Long,
@@ -213,7 +256,16 @@ data class Snapshot(
     val running: List<RunningOp> = emptyList(),
     /** Remote instances of a multihost server. Their plans are part of [plans]. */
     val remotes: List<RemoteState> = emptyList(),
+    /** Due operations waiting in the task queue, in expected run order. */
+    val queued: List<QueuedOp> = emptyList(),
 ) {
+    /** The queued backup of a plan and its 1-based position in the queue, if it waits. */
+    fun queuedBackup(plan: PlanState): Pair<QueuedOp, Int>? {
+        if (plan.isRemote) return null
+        val index = queued.indexOfFirst { it.kind == OpKind.BACKUP && it.planId == plan.id }
+        return if (index < 0) null else queued[index] to index + 1
+    }
+
     /** Whether an operation runs on a remote instance rather than on the server itself. */
     fun isRemote(op: RunningOp): Boolean = remotes.any { it.instance == op.instance }
 
@@ -243,6 +295,16 @@ data class Snapshot(
             }
         }))
         put("running", JSONArray(running.map { it.toJson() }))
+        put("queued", JSONArray(queued.map { q ->
+            JSONObject().apply {
+                put("id", q.id)
+                put("kind", q.kind.name)
+                put("planId", q.planId ?: "")
+                put("repoId", q.repoId)
+                put("dueMs", q.dueMs)
+                put("instance", q.instance)
+            }
+        }))
         put("remotes", JSONArray(remotes.map { r ->
             JSONObject().apply {
                 put("instance", r.instance)
@@ -295,7 +357,17 @@ data class Snapshot(
                     bytesAdded30d = r.optLong("bytesAdded30d"),
                 )
             }
-            return Snapshot(o.getLong("fetchedAtMs"), plans, repos, running, remotes)
+            val queued = o.optJSONArray("queued").objects().map { q ->
+                QueuedOp(
+                    id = q.getLong("id"),
+                    kind = OpKind.valueOf(q.getString("kind")),
+                    planId = q.optString("planId").ifEmpty { null },
+                    repoId = q.optString("repoId"),
+                    dueMs = q.getLong("dueMs"),
+                    instance = q.optString("instance"),
+                )
+            }
+            return Snapshot(o.getLong("fetchedAtMs"), plans, repos, running, remotes, queued)
         }
 
         /**
@@ -336,7 +408,8 @@ data class Snapshot(
                 val id = s.optString("id").ifEmpty { return@mapNotNull null }
                 RepoState(id, s.longOrNull("protectedBytes")?.takeIf { it > 0 }, s.longOrNull("bytesAddedLast30days") ?: 0)
             }.sortedBy { it.id.lowercase() }
-            return Snapshot(nowMs, plans + remotePlans, repos, running, remotes)
+            val queued = QueuedOp.fromOperations(operations, nowMs, remoteIds)
+            return Snapshot(nowMs, plans + remotePlans, repos, running, remotes, queued)
         }
 
         /** Derive a remote plan's state from its synced operations (the summary dashboard only covers local plans). */

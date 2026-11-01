@@ -84,7 +84,7 @@ object Format {
         val failed = snapshot.plans.count { it.health == Health.ERROR }
         val warned = snapshot.plans.count { it.health == Health.WARNING }
         val running = snapshot.running
-        return when {
+        val base = when {
             snapshot.plans.isEmpty() && running.isEmpty() -> "Keine Pläne"
             failed > 0 -> "$failed fehlgeschlagen"
             warned > 0 -> if (warned == 1) "1 Warnung" else "$warned Warnungen"
@@ -93,7 +93,13 @@ object Format {
             snapshot.plans.any { it.running } -> "Backup läuft"
             else -> "Alles OK"
         }
+        val waiting = snapshot.queued.size
+        return if (waiting == 0) base else "$base · $waiting ${if (waiting == 1) "wartet" else "warten"}"
     }
+
+    /** "wartet seit 00:00 · Platz 2" for a queued operation. */
+    fun waiting(context: Context, op: QueuedOp, position: Int): String =
+        "wartet seit ${time(context, op.dueMs)} · Platz $position"
 
     fun connectionLabel(state: String): String = when (state) {
         "connected" -> "verbunden"
