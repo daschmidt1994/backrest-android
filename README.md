@@ -38,4 +38,6 @@ Lizenz: MIT. Benötigt Android 8.0+ und Backrest ≥ 1.6 (getestet mit 1.14.1).
 ./gradlew testDebugUnitTest assembleRelease
 ```
 
+Releases baut GitHub Actions (`.github/workflows/release.yml`) beim Push eines Tags `vX.Y.Z`: Tests, signierte Release-APK, GitHub-Release mit dem Text aus `RELEASE_NOTES.md`. Dafür müssen die Secrets `SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS` und `SIGNING_KEY_PASSWORD` gesetzt sein; ohne sie bricht der Workflow ab, statt mit dem Debug-Schlüssel zu signieren.
+
 Für signierte Release-Builds `keystore.properties` anlegen (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`); ohne diese Datei wird mit dem Debug-Schlüssel signiert.
