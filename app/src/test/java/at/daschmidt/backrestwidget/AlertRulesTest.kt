@@ -91,4 +91,11 @@ class AlertRulesTest {
         )
         assertEquals(listOf("gone", "never"), AlertRules.disconnected(remotes, now).map { it.instance })
     }
+
+    @Test
+    fun oldCopyOfRemoteDoesNotAlert() {
+        // Peer states unreadable: an old copy says nothing about the remote itself.
+        val old = RemoteState.carriedOver(listOf(RemoteState("vps", "connected", now - 3 * 24 * hour, emptyList())), now - hour, "Zeitüberschreitung")
+        assertTrue(AlertRules.disconnected(old, now).isEmpty())
+    }
 }

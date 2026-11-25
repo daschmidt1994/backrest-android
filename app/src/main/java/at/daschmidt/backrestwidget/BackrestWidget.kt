@@ -142,6 +142,7 @@ class BackrestWidget : AppWidgetProvider() {
             val next = plan.nextBackupMs
             val remote = snapshot.remotes.firstOrNull { it.instance == plan.instance }
             val detail = when {
+                remote != null && remote.stale -> "Status unbekannt"
                 remote != null && !remote.connected -> "getrennt"
                 next != null -> "nächstes ${Format.dayAndTime(context, next)}"
                 else -> "kein Zeitplan"

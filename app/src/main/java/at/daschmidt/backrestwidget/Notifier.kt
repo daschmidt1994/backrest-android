@@ -45,9 +45,12 @@ object AlertRules {
     fun unreachable(failedRefreshes: Int, threshold: Int, alreadyNotified: Boolean): Boolean =
         !alreadyNotified && failedRefreshes >= threshold
 
-    /** Remotes that count as disconnected: not connected and without a recent heartbeat. */
+    /**
+     * Remotes that count as disconnected: not connected and without a recent heartbeat.
+     * An old copy (peer states unreadable) proves nothing about the remote and is skipped.
+     */
     fun disconnected(remotes: List<RemoteState>, nowMs: Long): List<RemoteState> = remotes.filter {
-        !it.connected && (it.lastHeartbeatMs == null || nowMs - it.lastHeartbeatMs > REMOTE_SILENCE_MS)
+        !it.stale && !it.connected && (it.lastHeartbeatMs == null || nowMs - it.lastHeartbeatMs > REMOTE_SILENCE_MS)
     }
 }
 

@@ -160,11 +160,19 @@ class MainActivity : Activity() {
         view.findViewById<TextView>(R.id.plan_name).text = plan.id
         view.findViewById<TextView>(R.id.plan_remote).apply {
             visibility = if (plan.isRemote) View.VISIBLE else View.GONE
-            text = listOfNotNull(
-                "Remote-Instanz ${plan.instance}",
-                remote?.let { Format.connectionLabel(it.state) },
-                remote?.lastHeartbeatMs?.let { "Kontakt ${Format.relative(it)}" },
-            ).joinToString(" · ")
+            text = if (remote?.stateAsOfMs != null) {
+                listOfNotNull(
+                    "Remote-Instanz ${plan.instance}",
+                    "Status nicht abrufbar (${remote.fetchError ?: "unbekannter Fehler"})",
+                    "Stand ${Format.dateTime(this@MainActivity, remote.stateAsOfMs)}",
+                ).joinToString(" · ")
+            } else {
+                listOfNotNull(
+                    "Remote-Instanz ${plan.instance}",
+                    remote?.let { Format.connectionLabel(it.state) },
+                    remote?.lastHeartbeatMs?.let { "Kontakt ${Format.relative(it)}" },
+                ).joinToString(" · ")
+            }
         }
 
         val last = plan.lastFinished

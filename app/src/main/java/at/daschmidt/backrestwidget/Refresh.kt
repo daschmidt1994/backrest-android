@@ -33,7 +33,13 @@ object Refresher {
             val operations = runCatching { client.recentOperations() }.getOrNull()
             // Multihost: client instances of this server, e.g. VPS backed up via Backrest.
             val remotes = runCatching { client.peerStates().mapNotNull { RemoteState.from(it) } }
-                .getOrElse { if (it is AuthException) throw it else settings.snapshot?.remotes.orEmpty() }
+                .getOrElse {
+                    if (it is AuthException) throw it
+                    // Show the last known remotes as an old copy instead of passing them off as current.
+                    val cached = settings.snapshot
+                    val error = if (it is SocketTimeoutException) "Zeitüberschreitung" else it.message ?: it.javaClass.simpleName
+                    RemoteState.carriedOver(cached?.remotes.orEmpty(), cached?.fetchedAtMs ?: now, error)
+                }
             val remoteOperations = remotes.flatMap { remote -> remote.planIds.map { remote.instance to it } }
                 .mapNotNull { (instance, planId) ->
                     runCatching { "$instance/$planId" to client.planOperations(instance, planId) }.getOrNull()
