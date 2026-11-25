@@ -222,10 +222,29 @@ data class RemoteState(
     val state: String,
     val lastHeartbeatMs: Long?,
     val planIds: List<String>,
+    /**
+     * Set when the current refresh could not read peer states and this entry
+     * was carried over from an earlier snapshot: when that state was fetched.
+     */
+    val stateAsOfMs: Long? = null,
+    /** Why the peer states could not be read (only with [stateAsOfMs]). */
+    val fetchError: String? = null,
 ) {
-    val connected: Boolean get() = state == "connected"
+    /** The state is an old copy, not what the server reports right now. */
+    val stale: Boolean get() = stateAsOfMs != null
+
+    /** Only a freshly fetched state can claim a live connection. */
+    val connected: Boolean get() = state == "connected" && !stale
 
     companion object {
+        /**
+         * Keep the remotes of the previous snapshot when peer states could not
+         * be read, but mark them as an old copy so they are never shown as
+         * current. An entry that is already stale keeps its original date.
+         */
+        fun carriedOver(cached: List<RemoteState>, cachedAtMs: Long, error: String): List<RemoteState> =
+            cached.map { it.copy(stateAsOfMs = it.stateAsOfMs ?: cachedAtMs, fetchError = error) }
+
         /**
          * Parse a PeerState message. Only plan IDs are taken from the remote
          * config: its repositories carry plaintext passwords and are ignored.
@@ -310,6 +329,8 @@ data class Snapshot(
                 put("instance", r.instance)
                 put("state", r.state)
                 r.lastHeartbeatMs?.let { put("lastHeartbeatMs", it) }
+                r.stateAsOfMs?.let { put("stateAsOfMs", it) }
+                r.fetchError?.let { put("fetchError", it) }
                 put("planIds", JSONArray(r.planIds))
             }
         }))
@@ -348,6 +369,8 @@ data class Snapshot(
                     state = r.optString("state", "unknown"),
                     lastHeartbeatMs = if (r.has("lastHeartbeatMs")) r.getLong("lastHeartbeatMs") else null,
                     planIds = if (ids == null) emptyList() else (0 until ids.length()).map { ids.getString(it) },
+                    stateAsOfMs = if (r.has("stateAsOfMs")) r.getLong("stateAsOfMs") else null,
+                    fetchError = r.optString("fetchError").ifEmpty { null },
                 )
             }
             val repos = o.optJSONArray("repos").objects().map { r ->

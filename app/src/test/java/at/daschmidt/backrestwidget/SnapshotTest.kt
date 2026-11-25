@@ -199,6 +199,36 @@ class RemoteInstancesTest {
     }
 
     @Test
+    fun carriedOverRemoteIsNotShownAsConnected() {
+        val live = RemoteState("netbird-vps", "connected", 1_000L, listOf("netbird-system"))
+        val old = RemoteState.carriedOver(listOf(live), 5_000L, "Zeitüberschreitung").single()
+        assertFalse(old.connected)
+        assertTrue(old.stale)
+        assertEquals(5_000L, old.stateAsOfMs)
+        assertEquals("Zeitüberschreitung", old.fetchError)
+        assertEquals(listOf("netbird-system"), old.planIds)
+        // A second failed refresh keeps the date of the last real fetch.
+        val older = RemoteState.carriedOver(listOf(old), 9_000L, "Keine Antwort zu Remote-Instanzen").single()
+        assertEquals(5_000L, older.stateAsOfMs)
+        assertEquals("Keine Antwort zu Remote-Instanzen", older.fetchError)
+    }
+
+    @Test
+    fun carriedOverStateSurvivesTheCache() {
+        val dashboard = JSONObject("""{"planSummaries":[{"id":"a"}]}""")
+        val old = RemoteState.carriedOver(listOf(RemoteState("vps", "connected", 1_000L, emptyList())), 5_000L, "Zeitüberschreitung")
+        val restored = Snapshot.fromJson(Snapshot.fromDashboard(dashboard, 9_000L, null, old).toJson()).remotes.single()
+        assertEquals(5_000L, restored.stateAsOfMs)
+        assertEquals("Zeitüberschreitung", restored.fetchError)
+        assertFalse(restored.connected)
+        val fresh = Snapshot.fromJson(
+            Snapshot.fromDashboard(dashboard, 9_000L, null, listOf(RemoteState("vps", "connected", 1_000L, emptyList()))).toJson()
+        ).remotes.single()
+        assertNull(fresh.stateAsOfMs)
+        assertTrue(fresh.connected)
+    }
+
+    @Test
     fun peerWithoutConfigUsesKnownPlans() {
         val remote = RemoteState.from(
             JSONObject("""{"peerInstanceId":"laptop","state":"CONNECTION_STATE_RETRY_WAIT","knownPlans":[{"id":"home"}]}""")
